@@ -1,8 +1,9 @@
-name: myenv
+name: mdxnet
 
 channels:
   - pytorch
   - conda-forge
+  - anaconda
 
 dependencies:
   - python=3.8
@@ -10,5 +11,10 @@ dependencies:
   - cudatoolkit
   - pytorch=1.8.1
   - torchvision=0.9.1
+  - jupyter
+  - librosa=0.8
+  - ffmpeg
+  - onnxruntime
+
   - pip:
       - -r requirements.txt

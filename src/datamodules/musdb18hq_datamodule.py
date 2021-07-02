@@ -1,14 +1,17 @@
+import os
 from typing import Optional, Tuple
 
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import ConcatDataset, DataLoader, Dataset, random_split
-from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
+import musdb
+
+from src.datamodules.datasets.MusdbWrapper import MusdbWrapperDataset, MusdbTrainDataset, MusdbValidationDataset
 
 
-class MNISTDataModule(LightningDataModule):
+class Musdb18hqDataModule(LightningDataModule):
     """
-    Example of LightningDataModule for MNIST dataset.
+    LightningDataModule for Musdb18-HQ dataset.
 
     A DataModule implements 5 key methods:
         - prepare_data (things to do on 1 GPU/TPU, not on every GPU/TPU in distributed mode)
@@ -25,28 +28,44 @@ class MNISTDataModule(LightningDataModule):
     """
 
     def __init__(
-        self,
-        data_dir: str = "data/",
-        train_val_test_split: Tuple[int, int, int] = (55_000, 5_000, 10_000),
-        batch_size: int = 64,
-        num_workers: int = 0,
-        pin_memory: bool = False,
-        **kwargs,
+            self,
+            data_dir: str,
+            target_name: str,
+            n_fft: int,
+            hop_length: int,
+            dim_c: int,
+            dim_f: int,
+            dim_t: int,
+            sampling_rate: int,
+            batch_size: int,
+            num_workers: int,
+            pin_memory: bool,
+            validation_set,
+            **kwargs,
     ):
         super().__init__()
 
         self.data_dir = data_dir
-        self.train_val_test_split = train_val_test_split
+        self.target_name = target_name
+
+        # audio-related
+        self.n_fft = n_fft
+        self.hop_length = hop_length
+        self.dim_c = dim_c
+        self.dim_f = dim_f
+        self.dim_t = dim_t
+        self.sampling_rate = sampling_rate
+
+        # derived
+        self.n_bins = n_fft // 2 + 1
+        self.sampling_size = hop_length * (dim_t - 1)
+        self.trim = n_fft // 2  # trim each generated sub-signal (noise due to conv zero-padding)
+
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.pin_memory = pin_memory
 
-        self.transforms = transforms.Compose(
-            [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
-        )
-
-        # self.dims is returned when you call datamodule.size()
-        self.dims = (1, 28, 28)
+        self.validation_set = validation_set
 
         self.data_train: Optional[Dataset] = None
         self.data_val: Optional[Dataset] = None
@@ -57,19 +76,30 @@ class MNISTDataModule(LightningDataModule):
         return 10
 
     def prepare_data(self):
-        """Download data if needed. This method is called only from a single GPU.
-        Do not use it to assign state (self.x = y)."""
-        MNIST(self.data_dir, train=True, download=True)
-        MNIST(self.data_dir, train=False, download=True)
+
+        try:
+            assert len(os.listdir(self.data_dir + '/train')) >= 94
+            assert len(os.listdir(self.data_dir + '/test')) == 50
+
+        except Exception as ex:
+            print('[ERROR] It seems you are using a wrong directory for the musdb18 dataset')
+            print(ex)
+            exit(-1)
 
     def setup(self, stage: Optional[str] = None):
         """Load data. Set variables: self.data_train, self.data_val, self.data_test."""
-        trainset = MNIST(self.data_dir, train=True, transform=self.transforms)
-        testset = MNIST(self.data_dir, train=False, transform=self.transforms)
-        dataset = ConcatDataset(datasets=[trainset, testset])
-        self.data_train, self.data_val, self.data_test = random_split(
-            dataset, self.train_val_test_split
-        )
+        self.data_train = MusdbTrainDataset(self.data_dir,
+                                            self.target_name,
+                                            self.validation_set,
+                                            self.sampling_rate,
+                                            self.sampling_size)
+
+        self.data_val = MusdbValidationDataset(self.data_dir,
+                                               self.target_name,
+                                               self.validation_set,
+                                               self.sampling_rate,
+                                               self.sampling_size,
+                                               self.n_fft)
 
     def train_dataloader(self):
         return DataLoader(

@@ -1,9 +1,17 @@
 _target_: pytorch_lightning.Trainer
 
-gpus: 0
+defaults:
+  - override /trainer: minimal.yaml
+
+# override: trainer
+gpus: 1
+amp_backend: apex
+precision: 16
+amp_level: "O2"
 
 min_epochs: 1
-max_epochs: 2
+max_epochs: 10
+data_dir: ${work_dir}/../data/musdb18_dev_wav
 
 # prints
 progress_bar_refresh_rate: null

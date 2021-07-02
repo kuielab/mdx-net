@@ -15,6 +15,7 @@ dependencies:
   - librosa=0.8
   - ffmpeg
   - onnxruntime
+  - nvidia-apex
 
   - pip:
       - -r requirements.txt

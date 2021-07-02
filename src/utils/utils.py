@@ -1,15 +1,38 @@
 import logging
 import warnings
-from typing import List, Sequence
-
 import pytorch_lightning as pl
 import rich.syntax
 import rich.tree
 import wandb
+import numpy as np
+import warnings
+import soundfile as sf
+from typing import List, Sequence
 from omegaconf import DictConfig, OmegaConf
 from pytorch_lightning.loggers.wandb import WandbLogger
 from pytorch_lightning.utilities import rank_zero_only
 
+from tests.helpers.run_command import run_command
+
+
+def sdr(ref, est):
+    ratio = np.sum(ref**2) / np.sum((ref-est)**2)
+    return 10*np.log10(ratio)
+
+
+def load(path, max_length=None, sampling_size=None):
+    if max_length is None:
+        return sf.read(path, dtype='float32')[0].T
+    else:
+        s = np.random.randint(max_length - sampling_size)
+        return sf.read(path, dtype='float32', start=s, frames=sampling_size)[0].T
+
+
+def load_from_start_position(path, start_pos, frame):
+    return sf.read(path, dtype='float32', start=start_pos, frames=frame)[0].T
+
+
+###
 
 def get_logger(name=__name__, level=logging.INFO) -> logging.Logger:
     """Initializes multi-GPU-friendly python logger."""
@@ -79,16 +102,16 @@ def extras(config: DictConfig) -> None:
 
 @rank_zero_only
 def print_config(
-    config: DictConfig,
-    fields: Sequence[str] = (
-        "trainer",
-        "model",
-        "datamodule",
-        "callbacks",
-        "logger",
-        "seed",
-    ),
-    resolve: bool = True,
+        config: DictConfig,
+        fields: Sequence[str] = (
+                "trainer",
+                "model",
+                "datamodule",
+                "callbacks",
+                "logger",
+                "seed",
+        ),
+        resolve: bool = True,
 ) -> None:
     """Prints content of DictConfig using Rich library and its tree structure.
 
@@ -121,12 +144,12 @@ def empty(*args, **kwargs):
 
 @rank_zero_only
 def log_hyperparameters(
-    config: DictConfig,
-    model: pl.LightningModule,
-    datamodule: pl.LightningDataModule,
-    trainer: pl.Trainer,
-    callbacks: List[pl.Callback],
-    logger: List[pl.loggers.LightningLoggerBase],
+        config: DictConfig,
+        model: pl.LightningModule,
+        datamodule: pl.LightningDataModule,
+        trainer: pl.Trainer,
+        callbacks: List[pl.Callback],
+        logger: List[pl.loggers.LightningLoggerBase],
 ) -> None:
     """This method controls which parameters from Hydra config are saved by Lightning loggers.
 
@@ -162,12 +185,12 @@ def log_hyperparameters(
 
 
 def finish(
-    config: DictConfig,
-    model: pl.LightningModule,
-    datamodule: pl.LightningDataModule,
-    trainer: pl.Trainer,
-    callbacks: List[pl.Callback],
-    logger: List[pl.loggers.LightningLoggerBase],
+        config: DictConfig,
+        model: pl.LightningModule,
+        datamodule: pl.LightningDataModule,
+        trainer: pl.Trainer,
+        callbacks: List[pl.Callback],
+        logger: List[pl.loggers.LightningLoggerBase],
 ) -> None:
     """Makes sure everything closed properly."""
 
@@ -175,3 +198,7 @@ def finish(
     for lg in logger:
         if isinstance(lg, WandbLogger):
             wandb.finish()
+
+
+def wandb_login(key):
+    wandb.login(key=key)

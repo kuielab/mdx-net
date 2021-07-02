@@ -1,0 +1,22 @@
+# @package _global_
+
+# to execute this experiment run:
+# python run.py experiment=example_simple.yaml
+
+defaults:
+  - override /trainer: 3090.yaml # choose trainer from 'configs/trainer/'
+  - override /model: conv_tdf.yaml
+  - override /datamodule: musdb18_hq.yaml
+  - override /callbacks: wandb.yaml
+  - override /logger: wandb.yaml
+
+# override config.yaml
+
+seed: 2021
+
+datamodule:
+  target_name: vocals
+
+#hydra:
+#  run:
+#    dir: logs/runs/${datamodule.target_name}/${now:%Y-%m-%d}/${now:%H-%M-%S}

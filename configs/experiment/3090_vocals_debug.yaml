@@ -1,0 +1,18 @@
+# @package _global_
+
+# to execute this experiment run:
+# python run.py experiment=example_simple.yaml
+
+defaults:
+  - 3090_vocals.yaml
+  - override /callbacks: default.yaml
+  - override /logger: csv.yaml
+
+trainer:
+  check_val_every_n_epoch: 1
+datamodule:
+  data_dir: ${work_dir}/../data/musdbDEV
+
+#hydra:
+#  run:
+#    dir: logs/runs/${datamodule.target_name}/${now:%Y-%m-%d}/${now:%H-%M-%S}

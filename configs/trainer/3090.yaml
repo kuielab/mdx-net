@@ -1,0 +1,11 @@
+_target_: pytorch_lightning.Trainer
+
+defaults:
+  - minimal.yaml # choose trainer from 'configs/trainer/'
+
+deterministic: True
+
+gpus: 1
+amp_backend: apex
+precision: 16
+amp_level: "O2"

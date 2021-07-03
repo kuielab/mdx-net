@@ -9,6 +9,7 @@ from pytorch_lightning import LightningModule
 from pytorch_lightning.utilities.types import STEP_OUTPUT, EPOCH_OUTPUT
 from torch.nn.functional import mse_loss
 
+from src.models.fourier import multi_channeled_STFT
 from src.models.modules import Conv_TDF
 from src.utils.utils import sdr
 
@@ -56,7 +57,7 @@ class AbstractMDXNet(LightningModule):
         mix_spec = self.stft(mixture_wav)[:, :, :self.dim_f]
         spec_hat = self(mix_spec)
         pad = torch.zeros([batch_size, dim_c, self.n_bins - self.dim_f, self.dim_t],
-                          dtype=spec_hat.dtype,
+                          #dtype=spec_hat.dtype,
                           device=spec_hat.device)
 
         target_wav_hat = self.istft(torch.cat([spec_hat, pad], -2))
@@ -74,7 +75,7 @@ class AbstractMDXNet(LightningModule):
         mix_spec = self.stft(mixture_wav)[:, :, :self.dim_f]
         spec_hat = self(mix_spec)
         pad = torch.zeros([batch_size, dim_c, self.n_bins - self.dim_f, self.dim_t],
-                          dtype=spec_hat.dtype,
+                          #dtype=spec_hat.dtype,
                           device=spec_hat.device)
 
         target_wav_hat = self.istft(torch.cat([spec_hat, pad], -2))

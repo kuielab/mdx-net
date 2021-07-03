@@ -5,7 +5,8 @@ defaults:
 
 deterministic: True
 
-gpus: 1
+gpus: 4
+accelerator: ddp
 amp_backend: "native"
 precision: 16
 amp_level: "O2"

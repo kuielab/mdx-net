@@ -10,7 +10,6 @@ watch_model:
 upload_valid_track:
   _target_: src.callbacks.wandb_callbacks.UploadValidTrack
   crop: 3
-  upload_every_n_epoch: ${trainer.check_val_every_n_epoch}
   upload_after_n_epoch: -1
 
 #upload_code_as_artifact:

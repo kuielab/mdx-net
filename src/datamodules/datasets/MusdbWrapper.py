@@ -85,7 +85,7 @@ class MusdbTrainDataset(MusdbWrapperDataset):
                 target2 = load(self.file_paths[index2].joinpath(t_wav_name), self.lengths[index2], self.sampling_size)
                 mix = mix + target2
 
-        return torch.tensor(mix), torch.tensor(target)
+        return torch.from_numpy(mix), torch.from_numpy(target)
 
     def __len__(self):
         return self.num_iter  # 3241 ~ compatible to check_val_n_epoch = 25
@@ -163,14 +163,16 @@ class MusdbValidationDataset(MusdbWrapperDataset):
         track_mix = load_from_start_position(self.file_paths[track_idx].joinpath('mixture.wav'), start_pos, frame)
 
         if left_pad > 0 and right_pad > 0:
-            track_mix = np.concatenate((np.zeros((2, left_pad)), track_mix, np.zeros((2, right_pad))), 1)
+            track_mix = np.concatenate((np.zeros((2, left_pad), dtype='float32'),
+                                        track_mix,
+                                        np.zeros((2, right_pad), dtype='float32')), 1)
         elif left_pad > 0:
-            track_mix = np.concatenate((np.zeros((2, left_pad)), track_mix), 1)
+            track_mix = np.concatenate((np.zeros((2, left_pad), dtype='float32'), track_mix), 1)
         elif right_pad > 0:
-            track_mix = np.concatenate((track_mix, np.zeros((2, right_pad))), 1)
+            track_mix = np.concatenate((track_mix, np.zeros((2, right_pad), dtype='float32')), 1)
 
         assert track_mix.shape[-1] == self.sampling_size
-        return track_idx, chunk_idx, torch.tensor(track_mix)
+        return track_idx, chunk_idx, torch.from_numpy(track_mix)
 
     def __len__(self):
         return self.num_iter

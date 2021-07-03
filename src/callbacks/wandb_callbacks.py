@@ -29,9 +29,8 @@ def get_wandb_logger(trainer: Trainer) -> WandbLogger:
 
 
 class UploadValidTrack(Callback):
-    def __init__(self, crop: int, upload_every_n_epoch: int, upload_after_n_epoch: int):
+    def __init__(self, crop: int, upload_after_n_epoch: int):
         self.sample_length = crop * 44100
-        self.upload_every_n_epoch = upload_every_n_epoch
         self.upload_after_n_epoch = upload_after_n_epoch
         self.len_left_window = self.len_right_window = self.sample_length // 2
 
@@ -40,8 +39,6 @@ class UploadValidTrack(Callback):
         experiment = logger.experiment
 
         if pl_module.current_epoch < self.upload_after_n_epoch:
-            return None
-        if (pl_module.current_epoch % self.upload_every_n_epoch) != 0:
             return None
 
         for track_key in pl_module.val_track_hats.keys():

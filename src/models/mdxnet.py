@@ -9,7 +9,6 @@ from pytorch_lightning import LightningModule
 from pytorch_lightning.utilities.types import STEP_OUTPUT, EPOCH_OUTPUT
 from torch.nn.functional import mse_loss
 
-from src.models.fourier import multi_channeled_STFT
 from src.models.modules import Conv_TDF
 from src.utils.utils import sdr
 

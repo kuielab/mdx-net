@@ -1,6 +1,7 @@
 # output paths for hydra logs
 run:
-  dir: logs/runs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  dir: logs/runs/${datamodule.target_name}/${now:%Y-%m-%d}/${now:%H-%M-%S}
+
 sweep:
   dir: logs/multiruns/${now:%Y-%m-%d_%H-%M-%S}
   subdir: ${hydra.job.num}
@@ -10,3 +11,4 @@ sweep:
 job:
   env_set:
     EXAMPLE_VAR: "example_value"
+

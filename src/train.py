@@ -9,7 +9,7 @@ from pytorch_lightning import (
     Trainer,
     seed_everything,
 )
-from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.loggers import LightningLoggerBase, WandbLogger
 
 from src.utils import utils
 
@@ -28,8 +28,15 @@ def train(config: DictConfig) -> Optional[float]:
     """
 
     # Set seed for random number generators in pytorch, numpy and python.random
-    if "seed" in config:
-        seed_everything(config.seed, workers=True)
+    try:
+        if "seed" in config:
+            seed_everything(config.seed, workers=True)
+        else:
+            raise ModuleNotFoundError
+
+    except ModuleNotFoundError:
+        print('[Error] seed should be fixed for reproducibility \n=> e.g. python run.py +seed=$SEED')
+        exit(-1)
 
     # Init Lightning datamodule
     log.info(f"Instantiating datamodule <{config.datamodule._target_}>")
@@ -54,6 +61,9 @@ def train(config: DictConfig) -> Optional[float]:
             if "_target_" in lg_conf:
                 log.info(f"Instantiating logger <{lg_conf._target_}>")
                 logger.append(hydra.utils.instantiate(lg_conf))
+
+        if any([isinstance(l, WandbLogger) for l in logger]):
+            utils.wandb_login(key=config.wandb_api_key)
 
     # Init Lightning trainer
     log.info(f"Instantiating trainer <{config.trainer._target_}>")

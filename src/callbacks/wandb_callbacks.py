@@ -28,6 +28,29 @@ def get_wandb_logger(trainer: Trainer) -> WandbLogger:
     )
 
 
+class UploadValidTrack(Callback):
+    def __init__(self, crop: int, upload_after_n_epoch: int):
+        self.sample_length = crop * 44100
+        self.upload_after_n_epoch = upload_after_n_epoch
+        self.len_left_window = self.len_right_window = self.sample_length // 2
+
+    def on_validation_epoch_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
+        logger = get_wandb_logger(trainer=trainer)
+        experiment = logger.experiment
+
+        if pl_module.current_epoch < self.upload_after_n_epoch:
+            return None
+
+        for track_key in pl_module.val_track_hats.keys():
+            track = pl_module.val_track_hats[track_key]
+            if track.shape[-1] > self.sample_length:
+                mid = track.shape[-1]//2
+                track = track[:, mid-self.len_left_window:mid+self.len_right_window]
+
+                experiment.log({'track={}_epoch={}'.format( track_key, pl_module.current_epoch):
+                    [wandb.Audio(track.T, sample_rate=44100)]})
+
+
 class WatchModel(Callback):
     """Make wandb watch model at the beginning of the run."""
 

@@ -94,7 +94,8 @@ class Musdb18hqDataModule(LightningDataModule):
                                             self.sampling_rate,
                                             self.sampling_size)
 
-        self.data_val = MusdbValidationDataset(self.data_dir,
+        self.data_val = MusdbValidationDataset(self.batch_size,
+                                               self.data_dir,
                                                self.target_name,
                                                self.validation_set,
                                                self.sampling_rate,
@@ -113,7 +114,7 @@ class Musdb18hqDataModule(LightningDataModule):
     def val_dataloader(self):
         return DataLoader(
             dataset=self.data_val,
-            batch_size=self.batch_size,
+            batch_size=1,
             num_workers=self.num_workers,
             pin_memory=self.pin_memory,
             shuffle=False,

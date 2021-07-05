@@ -93,12 +93,14 @@ class MusdbTrainDataset(MusdbWrapperDataset):
 
 class MusdbValidationDataset(MusdbWrapperDataset):
 
-    def __init__(self, musdb_path, target_name, validation_set, sr, sampling_size, n_fft):
+    def __init__(self, batch_size, musdb_path, target_name, validation_set, sr, sampling_size, n_fft):
         super().__init__(musdb_path)
 
         check_target_valid(target_name)
         self.target_name = target_name
         self.target_wav_name = target_name + '.wav'
+
+        self.batch_size = batch_size
 
         path = Path(musdb_path)
         self.track_names = sorted(set(os.listdir(path.joinpath('train'))).intersection(set(validation_set)))
@@ -122,64 +124,76 @@ class MusdbValidationDataset(MusdbWrapperDataset):
         self.true_samples = sampling_size - 2 * self.trim
 
         self.tracks = [load(track.joinpath('vocals.wav')) for track in self.file_paths]
-        self.lengths = [track.shape[1] for track in self.tracks]
-        num_chunks = [length // self.true_samples for length in self.lengths]
-        id_pad_start_frame_pad = [
-            [
-                (track_i,
-                 chunk_i,
-                 0,
-                 chunk_i * self.true_samples - self.trim,
-                 sampling_size,
-                 0)
-                for chunk_i
-                in range(num_chunk + 1)
-            ]
-            for track_i, num_chunk
-            in enumerate(num_chunks)
-        ]
-
-        for items in id_pad_start_frame_pad:
-            track_i, chunk_i, left_pad, s, frame, right_pad = items[0]
-            items[0] = (track_i, chunk_i, self.trim, 0, self.true_samples + self.trim, right_pad)
-
-            track_i, chunk_i, left_pad, s, frame, right_pad = items[-1]
-            if self.lengths[track_i] % self.true_samples != 0:
-                items[-1] = (track_i,
-                             chunk_i,
-                             left_pad,
-                             s,
-                             -1,
-                             self.true_samples + self.trim - (self.lengths[track_i] % self.true_samples)
-                             )
-            else:
-                items.remove(items[-1])
-
-        self.idx_pad_s_frame_pads = [item for items in id_pad_start_frame_pad for item in items]
-        self.num_iter = len(self.idx_pad_s_frame_pads)
+        # self.lengths = [track.shape[1] for track in self.tracks]
+        # num_chunks = [length // self.true_samples for length in self.lengths]
+        # id_pad_start_frame_pad = [
+        #     [
+        #         (track_i,
+        #          chunk_i,
+        #          0,
+        #          chunk_i * self.true_samples - self.trim,
+        #          sampling_size,
+        #          0)
+        #         for chunk_i
+        #         in range(num_chunk + 1)
+        #     ]
+        #     for track_i, num_chunk
+        #     in enumerate(num_chunks)
+        # ]
+        #
+        # for items in id_pad_start_frame_pad:
+        #     track_i, chunk_i, left_pad, s, frame, right_pad = items[0]
+        #     items[0] = (track_i, chunk_i, self.trim, 0, self.true_samples + self.trim, right_pad)
+        #
+        #     track_i, chunk_i, left_pad, s, frame, right_pad = items[-1]
+        #     if self.lengths[track_i] % self.true_samples != 0:
+        #         items[-1] = (track_i,
+        #                      chunk_i,
+        #                      left_pad,
+        #                      s,
+        #                      -1,
+        #                      self.true_samples + self.trim - (self.lengths[track_i] % self.true_samples)
+        #                      )
+        #     else:
+        #         items.remove(items[-1])
+        #
+        # self.idx_pad_s_frame_pads = [item for items in id_pad_start_frame_pad for item in items]
+        self.num_iter = len(self.track_names)
 
     def __getitem__(self, index):
-        track_idx, chunk_idx, left_pad, start_pos, frame, right_pad = self.idx_pad_s_frame_pads[index]
-        track_mix = load_from_start_position(self.file_paths[track_idx].joinpath('mixture.wav'), start_pos, frame)
+        files = [self.file_paths[index].joinpath(source) for source in ['mixture.wav', self.target_wav_name]]
+        mixture, target = [load(file) for file in files]
 
-        if left_pad > 0 and right_pad > 0:
-            track_mix = np.concatenate((np.zeros((2, left_pad), dtype='float32'),
-                                        track_mix,
-                                        np.zeros((2, right_pad), dtype='float32')), 1)
-        elif left_pad > 0:
-            track_mix = np.concatenate((np.zeros((2, left_pad), dtype='float32'), track_mix), 1)
-        elif right_pad > 0:
-            track_mix = np.concatenate((track_mix, np.zeros((2, right_pad), dtype='float32')), 1)
+        right_pad = self.true_samples + self.trim - ((mixture.shape[-1]) % self.true_samples)
+        mixture = np.concatenate((np.zeros((2, self.trim), dtype='float32'),
+                                  mixture,
+                                  np.zeros((2, right_pad), dtype='float32')),
+                                 1)
+        num_chunks = mixture.shape[-1]//self.true_samples
+        batches = [mixture[:, i*self.true_samples: i*self.true_samples + self.sampling_size] for i in range(num_chunks)]
 
-        assert track_mix.shape[-1] == self.sampling_size
-        return track_idx, chunk_idx, torch.from_numpy(track_mix)
+        return self.batch_size, index, np.stack(batches), target
+
+        # track_idx, chunk_idx, left_pad, start_pos, frame, right_pad = self.idx_pad_s_frame_pads[index]
+        # track_mix = load_from_start_position(self.file_paths[track_idx].joinpath('mixture.wav'), start_pos, frame)
+        #
+        # if left_pad > 0 and right_pad > 0:
+        #     track_mix = np.concatenate((np.zeros((2, left_pad), dtype='float32'),
+        #                                 track_mix,
+        #                                 np.zeros((2, right_pad), dtype='float32')), 1)
+        # elif left_pad > 0:
+        #     track_mix = np.concatenate((np.zeros((2, left_pad), dtype='float32'), track_mix), 1)
+        # elif right_pad > 0:
+        #     track_mix = np.concatenate((track_mix, np.zeros((2, right_pad), dtype='float32')), 1)
+        #
+        # assert track_mix.shape[-1] == self.sampling_size
+        # return track_idx, chunk_idx, torch.from_numpy(track_mix)
 
     def __len__(self):
         return self.num_iter
 
     def get_reference(self, index):
         return load(self.file_paths[index].joinpath(self.target_wav_name))
-
 
 #
 # def preprocess_track(y):

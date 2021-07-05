@@ -13,7 +13,6 @@ dim_f: ${dim_f}
 dim_t: ${dim_t}
 n_fft: ${n_fft}
 hop_length: ${hop_length}
-t_scale: # deprecated
 bn:
 bias: # deprecated
-mid_tdf: # deprecated
+

@@ -1,6 +1,6 @@
 import glob
 import os
-from typing import List
+from typing import List, Optional, Any
 
 import matplotlib.pyplot as plt
 import seaborn as sn
@@ -8,6 +8,7 @@ import torch
 import wandb
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.loggers import LoggerCollection, WandbLogger
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 from sklearn import metrics
 from sklearn.metrics import f1_score, precision_score, recall_score
 
@@ -34,21 +35,29 @@ class UploadValidTrack(Callback):
         self.upload_after_n_epoch = upload_after_n_epoch
         self.len_left_window = self.len_right_window = self.sample_length // 2
 
-    def on_validation_epoch_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
+    def on_validation_batch_end(
+        self,
+        trainer: 'pl.Trainer',
+        pl_module: 'pl.LightningModule',
+        outputs: Optional[STEP_OUTPUT],
+        batch: Any,
+        batch_idx: int,
+        dataloader_idx: int,
+    ) -> None:
+        track_id = outputs['track_id']
+        track = outputs['track']
+        pass
+
         logger = get_wandb_logger(trainer=trainer)
         experiment = logger.experiment
-
         if pl_module.current_epoch < self.upload_after_n_epoch:
             return None
 
-        for track_key in pl_module.val_track_hats.keys():
-            track = pl_module.val_track_hats[track_key]
-            if track.shape[-1] > self.sample_length:
-                mid = track.shape[-1]//2
-                track = track[:, mid-self.len_left_window:mid+self.len_right_window]
+        mid = track.shape[-1]//2
+        track = track[:, mid-self.len_left_window:mid+self.len_right_window]
 
-                experiment.log({'track={}_epoch={}'.format( track_key, pl_module.current_epoch):
-                    [wandb.Audio(track.T, sample_rate=44100)]})
+        experiment.log({'track={}_epoch={}'.format(track_id, pl_module.current_epoch):
+            [wandb.Audio(track.T, sample_rate=44100)]})
 
 
 class WatchModel(Callback):

@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from typing import Optional, Tuple
 
 from pytorch_lightning import LightningDataModule
@@ -29,6 +30,7 @@ class Musdb18hqDataModule(LightningDataModule):
     def __init__(
             self,
             data_dir: str,
+            augmentation: bool,
             external_datasets,
             target_name: str,
             n_fft: int,
@@ -45,6 +47,7 @@ class Musdb18hqDataModule(LightningDataModule):
         super().__init__()
 
         self.data_dir = data_dir
+        self.augmentation = augmentation
         self.external_datasets = external_datasets
         self.target_name = target_name
 
@@ -69,6 +72,21 @@ class Musdb18hqDataModule(LightningDataModule):
         self.data_val: Optional[Dataset] = None
         self.data_test: Optional[Dataset] = None
 
+        if not os.path.exists(self.data_dir + "/valid"):
+            from shutil import move
+            root = Path(self.data_dir)
+            train_root = root.joinpath('train')
+            valid_root = root.joinpath('valid')
+            os.mkdir(valid_root)
+
+            for track in kwargs['validation_set']:
+                move(train_root.joinpath(track), valid_root.joinpath(track))
+
+            print()
+        else:
+            valid_files = os.listdir(Path(self.data_dir).joinpath('valid'))
+            assert set(valid_files) == set(kwargs['validation_set'])
+
     @property
     def num_classes(self) -> int:
         return 10
@@ -79,6 +97,7 @@ class Musdb18hqDataModule(LightningDataModule):
     def setup(self, stage: Optional[str] = None):
         """Load data. Set variables: self.data_train, self.data_val, self.data_test."""
         self.data_train = MusdbTrainDataset(self.data_dir,
+                                            self.augmentation,
                                             self.external_datasets,
                                             self.target_name,
                                             self.sampling_size)

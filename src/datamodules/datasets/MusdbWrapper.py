@@ -44,7 +44,7 @@ class MusdbWrapperDataset(Dataset, ABC):
 
 class MusdbTrainDataset(MusdbWrapperDataset):
 
-    def __init__(self, data_dir, external_datasets, target_name, sampling_size):
+    def __init__(self, data_dir, augmentation: bool, external_datasets, target_name, sampling_size):
         super(MusdbTrainDataset, self).__init__(data_dir)
 
         check_target_valid(target_name)
@@ -52,22 +52,21 @@ class MusdbTrainDataset(MusdbWrapperDataset):
         self.target_wav_name = target_name + '.wav'
         self.sampling_size = sampling_size
 
-        path = Path(data_dir)
-        musdb_path = path.joinpath('musdbHQ')
+        musdb_path = Path(data_dir)
 
-        dataset_names = []
-        for p in range(-3, 4):
-            for t in range(-30, 40, 10):
-                split = 'train' if p==t==0 else f'train_p={p}_t={t}'
-                dataset_names.append(musdb_path.joinpath(split))
-
-        if external_datasets is not None:
-            dataset_names += external_datasets
+        dataset_names = [musdb_path.joinpath('train')]
+        if augmentation:
+            for p in range(-3, 4):
+                for t in range(-30, 40, 10):
+                    if (p, t) == (0, 0):  # original setting
+                        pass
+                    else:
+                        split = f'train_p={p}_t={t}'
+                        dataset_names.append(musdb_path.joinpath(split))
 
         self.metadata = dict([(s_name, []) for s_name in self.source_names])
 
-        for i in tqdm(range(len(dataset_names))):
-            dataset_path = path.joinpath(dataset_names[i])
+        for i, dataset_path in tqdm(enumerate(dataset_names)):
             track_names = sorted(os.listdir(dataset_path))
             for track_name in track_names:
                 track_path = dataset_path.joinpath(track_name)
@@ -76,7 +75,7 @@ class MusdbTrainDataset(MusdbWrapperDataset):
                     s_name = s_name[:-4]
                     if s_name in self.source_names:
                         self.metadata[s_name].append((track_path, track_length))
-            if i==0:
+            if i == 0:
                 self.lengths = [length for path, length in self.metadata['vocals']]
                 self.num_tracks = len(self.lengths)
                 self.num_iter = sum(self.lengths) // self.sampling_size + 1
@@ -85,7 +84,7 @@ class MusdbTrainDataset(MusdbWrapperDataset):
         sources = []
         for s_name in self.source_names:
             track_path, track_length = random.choice(self.metadata[s_name])
-            source = load(track_path.joinpath(s_name+'.wav'),
+            source = load(track_path.joinpath(s_name + '.wav'),
                           max_length=track_length, sampling_size=self.sampling_size)
             sources.append(source)
         mix = sum(sources)
@@ -108,7 +107,7 @@ class MusdbValidationDataset(MusdbWrapperDataset):
         self.batch_size = batch_size
 
         path = Path(data_dir)
-        musdb_valid_path = path.joinpath('musdbHQ/valid')
+        musdb_valid_path = path.joinpath('valid')
         self.track_names = sorted(set(os.listdir(musdb_valid_path)))
         self.file_paths = [musdb_valid_path.joinpath(track_name) for track_name in self.track_names]
 
@@ -130,7 +129,8 @@ class MusdbValidationDataset(MusdbWrapperDataset):
                                   np.zeros((2, right_pad), dtype='float32')),
                                  1)
         num_chunks = mixture.shape[-1] // self.true_samples
-        batches = [mixture[:, i * self.true_samples: i * self.true_samples + self.sampling_size] for i in range(num_chunks)]
+        batches = [mixture[:, i * self.true_samples: i * self.true_samples + self.sampling_size] for i in
+                   range(num_chunks)]
 
         return self.batch_size, index, np.stack(batches), target
 

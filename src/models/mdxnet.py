@@ -11,17 +11,16 @@ from torch.nn.functional import mse_loss
 from src.models.modules import Conv_TDF
 from src.utils.utils import sdr
 
-dim_c = 4  # CaC
-
 
 class AbstractMDXNet(LightningModule):
     __metaclass__ = ABCMeta
 
-    def __init__(self, target_name, lr, optimizer, dim_f, dim_t, n_fft, hop_length):
+    def __init__(self, target_name, lr, optimizer, dim_c, dim_f, dim_t, n_fft, hop_length):
         super().__init__()
         self.target_name = target_name
         self.lr = lr
         self.optimizer = optimizer
+        self.dim_c = dim_c
         self.dim_f = dim_f
         self.dim_t = dim_t
         self.n_fft = n_fft
@@ -85,7 +84,7 @@ class AbstractMDXNet(LightningModule):
         x = x.reshape([-1, self.sampling_size])
         x = torch.stft(x, n_fft=self.n_fft, hop_length=self.hop_length, window=self.window, center=True)
         x = x.permute([0, 3, 1, 2])
-        x = x.reshape([-1, 2, 2, self.n_bins, self.dim_t]).reshape([-1, dim_c, self.n_bins, self.dim_t])
+        x = x.reshape([-1, 2, 2, self.n_bins, self.dim_t]).reshape([-1, self.dim_c, self.n_bins, self.dim_t])
         return x[:, :, :self.dim_f]
 
     def istft(self, spec):
@@ -97,10 +96,10 @@ class AbstractMDXNet(LightningModule):
 
 
 class ConvTDFNet(AbstractMDXNet):
-    def __init__(self, target_name, lr, optimizer, dim_f, dim_t, n_fft, hop_length,
+    def __init__(self, target_name, lr, optimizer, dim_c, dim_f, dim_t, n_fft, hop_length,
                  num_blocks, l, g, k, bn, bias):
 
-        super(ConvTDFNet, self).__init__(target_name, lr, optimizer, dim_f, dim_t, n_fft, hop_length)
+        super(ConvTDFNet, self).__init__(target_name, lr, optimizer, dim_c, dim_f, dim_t, n_fft, hop_length)
         self.save_hyperparameters()
 
         # Important!: Required!
@@ -115,7 +114,7 @@ class ConvTDFNet(AbstractMDXNet):
         t_scale = np.arange(self.n)
 
         self.first_conv = nn.Sequential(
-            nn.Conv2d(in_channels=dim_c, out_channels=g, kernel_size=(1, 1)),
+            nn.Conv2d(in_channels=self.dim_c, out_channels=g, kernel_size=(1, 1)),
             nn.BatchNorm2d(g),
             nn.ReLU(),
         )
@@ -156,7 +155,7 @@ class ConvTDFNet(AbstractMDXNet):
             self.decoding_blocks.append(Conv_TDF(c, l, f, k, bn, bias=bias))
 
         self.final_conv = nn.Sequential(
-            nn.Conv2d(in_channels=c, out_channels=dim_c, kernel_size=(1, 1)),
+            nn.Conv2d(in_channels=c, out_channels=self.dim_c, kernel_size=(1, 1)),
         )
 
     def forward(self, x):

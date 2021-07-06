@@ -38,13 +38,7 @@ class AbstractMDXNet(LightningModule):
             return torch.optim.RMSprop(self.parameters(), self.lr)
 
     def on_train_start(self) -> None:
-        if self.current_epoch > 0:
-            pass
-
-        # Initialization TODO: check resume from checkpoint (epoch>0 checked)
-        for p in self.parameters():
-            if p.dim() > 1:
-                nn.init.xavier_normal_(p)
+        pass
 
     def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
         mixture_wav, target_wav = args[0]

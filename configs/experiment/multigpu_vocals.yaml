@@ -12,6 +12,7 @@ defaults:
 target_name: vocals
 batch_size: 4
 gpus: 4
+accelerator: ddp
 lr: 0.0003
 check_val_every_n_epoch: 10
 seed: 2021
@@ -56,11 +57,12 @@ model:
   hop_length: ${hop_length}
 
 trainer:
+  accelerator: ${accelerator}
   max_epochs: 2000
   min_epochs: 1
-  sync_batchnorm: True
+  sync_batchnorm: False
   precision: 16
-  resume_from_checkpoint: #/home/ielab/PycharmProjects/mdx-net/logs/runs/vocals/2021-07-06/14-50-51/checkpoints/last.ckpt
+  resume_from_checkpoint:
   auto_lr_find: False
   amp_backend: "native"
   amp_level: "O2"

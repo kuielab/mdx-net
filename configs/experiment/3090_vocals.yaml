@@ -4,14 +4,14 @@
 # python run.py experiment=example_simple.yaml
 
 defaults:
-  - override /trainer: 3090.yaml
+  - override /trainer: minimal.yaml
   - override /callbacks: wandb.yaml
   - override /logger: wandb.yaml
 
 # Training Environment
 target_name: vocals
 batch_size: 4
-gpus: 1
+gpus: 3
 lr: 0.0003
 check_val_every_n_epoch: 10
 seed: 2021
@@ -27,8 +27,8 @@ dim_c: 4
 hop_length: 1024
 
 # data augmentation
-external_datast:
-augmentation: False
+external_datasets:
+augmentation: True
 
 model:
   # model
@@ -55,8 +55,8 @@ model:
   hop_length: ${hop_length}
 
 trainer:
-  max_epochs: 1
-  min_epochs: 2000
+  max_epochs: 2000
+  min_epochs: 1
   sync_batchnorm: False
   precision: 16
   resume_from_checkpoint: null

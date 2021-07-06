@@ -36,3 +36,5 @@ print_config: True
 
 # disable python warnings if they annoy you
 ignore_warnings: True
+
+wandb_api_key: ${oc.env:wandb_api_key}

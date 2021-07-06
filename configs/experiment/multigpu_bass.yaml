@@ -9,9 +9,9 @@ defaults:
   - override /logger: wandb.yaml
 
 # Training Environment
-target_name: vocals
-batch_size: 4
-gpus: 4
+target_name: bass
+batch_size: 8
+gpus: 2
 lr: 0.0003
 check_val_every_n_epoch: 10
 seed: 2021
@@ -20,7 +20,7 @@ num_workers: 0 # num of cpus
 pin_memory: False # True then faster
 
 # STFT
-n_fft: 6144
+n_fft: 16384
 dim_f: 2048
 dim_t: 128
 dim_c: 4
@@ -59,7 +59,7 @@ trainer:
   min_epochs: 1
   sync_batchnorm: True
   precision: 16
-  resume_from_checkpoint: #/home/ielab/PycharmProjects/mdx-net/logs/runs/vocals/2021-07-06/14-50-51/checkpoints/last.ckpt
+  resume_from_checkpoint: /home/ielab/PycharmProjects/mdx-net/logs/runs/vocals/2021-07-06/14-50-51/checkpoints/last.ckpt
   auto_lr_find: False
   amp_backend: "native"
   amp_level: "O2"

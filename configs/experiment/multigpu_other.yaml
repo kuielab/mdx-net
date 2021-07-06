@@ -4,19 +4,15 @@
 # python run.py experiment=example_simple.yaml
 
 defaults:
-  - override /trainer: minimal.yaml
-  - override /callbacks: wandb.yaml
-  - override /logger: wandb.yaml
+  - multigpu_default.yaml
 
 # Training Environment
 target_name: other
 batch_size: 4
 gpus: 4
-accelerator: ddp
 lr: 0.0002
 check_val_every_n_epoch: 10
 seed: 2021
-deterministic: True
 num_workers: 0 # num of cpus
 pin_memory: False # True then faster
 
@@ -32,10 +28,6 @@ external_datasets:
 augmentation: True
 
 model:
-  # model
-  _target_: src.models.mdxnet.ConvTDFNet
-  target_name: ${target_name}
-
   # model configuration
   num_blocks: 9
   l: 5
@@ -43,44 +35,3 @@ model:
   k: 3
   bn: 8
   bias: False
-
-  # optimizer
-  lr: ${lr}
-  optimizer: rmsprop
-
-  # stft
-  n_fft: ${n_fft}
-  dim_f: ${dim_f}
-  dim_t: ${dim_t}
-  dim_c: ${dim_c}
-  hop_length: ${hop_length}
-
-trainer:
-  accelerator: ${accelerator}
-  max_epochs: 2000
-  min_epochs: 1
-  sync_batchnorm: False
-  precision: 16
-  resume_from_checkpoint:
-  auto_lr_find: False
-  amp_backend: "native"
-  amp_level: "O2"
-
-  deterministic: ${deterministic}
-  gpus: ${gpus}
-  check_val_every_n_epoch: ${check_val_every_n_epoch}
-
-
-# auto script
-datamodule:
-  num_workers: ${num_workers} # num of cpus
-  pin_memory: ${pin_memory} # True then faster
-  external_datasets: ${external_datasets}
-  augmentation: ${augmentation}
-  batch_size: ${batch_size}
-  target_name: ${target_name}
-  n_fft: ${n_fft}
-  hop_length: ${hop_length}
-  dim_c: ${dim_c}
-  dim_f: ${dim_f}
-  dim_t: ${dim_t}

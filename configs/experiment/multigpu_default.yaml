@@ -9,15 +9,20 @@ defaults:
   - override /logger: wandb.yaml
 
 # Training Environment
-target_name: vocals
+target_name:
 batch_size: 4
-gpus: 3
+gpus: 4
+accelerator: ddp
 lr: 0.0003
 check_val_every_n_epoch: 10
 seed: 2021
 deterministic: True
 num_workers: 0 # num of cpus
 pin_memory: False # True then faster
+
+# TODO: check effects
+sync_batchnorm: False
+resume_from_checkpoint:
 
 # STFT
 n_fft: 6144
@@ -57,9 +62,9 @@ model:
 trainer:
   max_epochs: 2000
   min_epochs: 1
-  sync_batchnorm: False
+  sync_batchnorm: ${sync_batchnorm}
   precision: 16
-  resume_from_checkpoint: null
+  resume_from_checkpoint: ${resume_from_checkpoint}
   auto_lr_find: False
   amp_backend: "native"
   amp_level: "O2"
@@ -67,13 +72,13 @@ trainer:
   deterministic: ${deterministic}
   gpus: ${gpus}
   check_val_every_n_epoch: ${check_val_every_n_epoch}
-
+  accelerator: ${accelerator}
 
 # auto script
 datamodule:
   num_workers: ${num_workers} # num of cpus
   pin_memory: ${pin_memory} # True then faster
-  external_datast: ${external_datast}
+  external_datasets: ${external_datasets}
   augmentation: ${augmentation}
   batch_size: ${batch_size}
   target_name: ${target_name}

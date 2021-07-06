@@ -9,7 +9,7 @@ defaults:
   - override /logger: wandb.yaml
 
 # Training Environment
-target_name: other
+target_name: bass
 batch_size: 4
 gpus: 4
 accelerator: ddp

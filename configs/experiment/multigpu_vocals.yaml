@@ -18,6 +18,7 @@ seed: 2021
 deterministic: True
 num_workers: 0 # num of cpus
 pin_memory: False # True then faster
+accelerator: ddp
 
 # STFT
 n_fft: 6144
@@ -67,7 +68,7 @@ trainer:
   deterministic: ${deterministic}
   gpus: ${gpus}
   check_val_every_n_epoch: ${check_val_every_n_epoch}
-
+  accelerator: ${accelerator}
 
 # auto script
 datamodule:

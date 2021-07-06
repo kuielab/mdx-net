@@ -1,8 +1,11 @@
 # KUIELab-MDX-Net
 
-```
-sudo apt-get install soundstretch
-```
+## Installation!
+conda env create -f conda_env_gpu.yaml -n mdx-net
+conda activate mdx-net
+
+# install requirements
+pip install -r requirements.txt
 
 # ACKNOWLEDGEMENT
 

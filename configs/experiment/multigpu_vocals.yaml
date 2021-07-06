@@ -1,0 +1,25 @@
+# @package _global_
+
+# to execute this experiment run:
+# python run.py experiment=example_simple.yaml
+
+defaults:
+  - override /trainer: multigpu.yaml
+  - override /model: conv_tdf.yaml
+  - override /datamodule: musdb18_hq.yaml
+  - override /callbacks: wandb.yaml
+  - override /logger: wandb.yaml
+
+seed: 2021
+
+n_fft: 6144
+
+trainer:
+  gpus: 3
+
+model:
+  bn: 8
+
+datamodule:
+  target_name: vocals
+  batch_size: 4

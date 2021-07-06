@@ -3,7 +3,6 @@ from typing import Optional, Tuple
 
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import ConcatDataset, DataLoader, Dataset, random_split
-from torchvision.transforms import transforms
 import musdb
 
 from src.datamodules.datasets.MusdbWrapper import MusdbWrapperDataset, MusdbTrainDataset, MusdbValidationDataset
@@ -30,6 +29,7 @@ class Musdb18hqDataModule(LightningDataModule):
     def __init__(
             self,
             data_dir: str,
+            external_datasets,
             target_name: str,
             n_fft: int,
             hop_length: int,
@@ -40,12 +40,12 @@ class Musdb18hqDataModule(LightningDataModule):
             batch_size: int,
             num_workers: int,
             pin_memory: bool,
-            validation_set,
             **kwargs,
     ):
         super().__init__()
 
         self.data_dir = data_dir
+        self.external_datasets = external_datasets
         self.target_name = target_name
 
         # audio-related
@@ -65,8 +65,6 @@ class Musdb18hqDataModule(LightningDataModule):
         self.num_workers = num_workers
         self.pin_memory = pin_memory
 
-        self.validation_set = validation_set
-
         self.data_train: Optional[Dataset] = None
         self.data_val: Optional[Dataset] = None
         self.data_test: Optional[Dataset] = None
@@ -76,29 +74,18 @@ class Musdb18hqDataModule(LightningDataModule):
         return 10
 
     def prepare_data(self):
-
-        try:
-            assert len(os.listdir(self.data_dir + '/train')) >= 94
-            assert len(os.listdir(self.data_dir + '/test')) == 50
-
-        except Exception as ex:
-            print('[ERROR] It seems you are using a wrong directory for the musdb18 dataset')
-            print(ex)
-            exit(-1)
+        pass
 
     def setup(self, stage: Optional[str] = None):
         """Load data. Set variables: self.data_train, self.data_val, self.data_test."""
         self.data_train = MusdbTrainDataset(self.data_dir,
+                                            self.external_datasets,
                                             self.target_name,
-                                            self.validation_set,
-                                            self.sampling_rate,
                                             self.sampling_size)
 
         self.data_val = MusdbValidationDataset(self.batch_size,
                                                self.data_dir,
                                                self.target_name,
-                                               self.validation_set,
-                                               self.sampling_rate,
                                                self.sampling_size,
                                                self.n_fft)
 

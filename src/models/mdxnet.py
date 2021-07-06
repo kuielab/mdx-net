@@ -31,6 +31,8 @@ class AbstractMDXNet(LightningModule):
         self.n_bins = self.n_fft // 2 + 1
         self.sampling_size = hop_length * (self.dim_t - 1)
         self.window = nn.Parameter(torch.hann_window(window_length=self.n_fft, periodic=True), requires_grad=False)
+        self.freq_pad = nn.Parameter(torch.zeros([1, dim_c, self.n_bins - self.dim_f, self.dim_t]), requires_grad=False)
+        self.input_sample_shape = (self.stft(torch.zeros([1, 2, self.sampling_size]))).shape
 
     def configure_optimizers(self):
         if self.optimizer == 'rmsprop':
@@ -48,17 +50,10 @@ class AbstractMDXNet(LightningModule):
     def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
         mixture_wav, target_wav = args[0]
 
-        batch_size = mixture_wav.shape[0]
-
-        mix_spec = self.stft(mixture_wav)[:, :, :self.dim_f]
-        spec_hat = self(mix_spec)
-        pad = torch.zeros([batch_size, dim_c, self.n_bins - self.dim_f, self.dim_t],
-                          # dtype=spec_hat.dtype,
-                          device=spec_hat.device)
-
-        target_wav_hat = self.istft(torch.cat([spec_hat, pad], -2))
-
-        loss = mse_loss(target_wav_hat, target_wav)
+        mix_spec = self.stft(mixture_wav)
+        tar_spec = self.stft(target_wav)
+        tar_spec_hat = self(mix_spec)
+        loss = mse_loss(tar_spec_hat, tar_spec)
         self.log("train/loss", loss, on_step=False, on_epoch=True, prog_bar=True)
 
         return {"loss": loss}
@@ -70,13 +65,13 @@ class AbstractMDXNet(LightningModule):
         target_wav_hats = []
 
         for mixture_wav in mixture_wav_batched[0].split(batch_size):
-            mix_spec = self.stft(mixture_wav)[:, :, :self.dim_f]
+            mix_spec = self.stft(mixture_wav)
             spec_hat = self(mix_spec)
-            pad = torch.zeros([mix_spec.shape[0], dim_c, self.n_bins - self.dim_f, self.dim_t],
-                              # dtype=spec_hat.dtype,
-                              device=spec_hat.device)
+            # pad = torch.zeros([mix_spec.shape[0], dim_c, self.n_bins - self.dim_f, self.dim_t],
+            #                   # dtype=spec_hat.dtype,
+            #                   device=spec_hat.device)
 
-            target_wav_hat = self.istft(torch.cat([spec_hat, pad], -2))
+            target_wav_hat = self.istft(spec_hat)
             target_wav_hat = target_wav_hat.cpu().detach().numpy()
             target_wav_hats.append(target_wav_hat)
 
@@ -91,9 +86,10 @@ class AbstractMDXNet(LightningModule):
         x = torch.stft(x, n_fft=self.n_fft, hop_length=self.hop_length, window=self.window, center=True)
         x = x.permute([0, 3, 1, 2])
         x = x.reshape([-1, 2, 2, self.n_bins, self.dim_t]).reshape([-1, dim_c, self.n_bins, self.dim_t])
-        return x
+        return x[:, :, :self.dim_f]
 
     def istft(self, spec):
+        spec = torch.cat([spec, self.freq_pad.repeat([spec.shape[0], 1, 1, 1])], -2)
         spec = spec.reshape([-1, 2, 2, self.n_bins, self.dim_t]).reshape([-1, 2, self.n_bins, self.dim_t])
         spec = spec.permute([0, 2, 3, 1])
         spec = torch.istft(spec, n_fft=self.n_fft, hop_length=self.hop_length, window=self.window, center=True)

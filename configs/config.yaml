@@ -24,7 +24,7 @@ defaults:
 work_dir: ${hydra:runtime.cwd}
 
 # path to folder with data
-data_dir: ${work_dir}/../data/musdbHQ
+data_dir: /home/ielab/MSS/data/
 
 # use `python run.py debug=true` for easy debugging!
 # this will run 1 train, val and test loop with only 1 batch
@@ -39,10 +39,8 @@ print_config: True
 ignore_warnings: True
 
 # STFT default
-n_fft: 4096 # 2 ** 11
+n_fft: 4096 # 2 ** 12
 hop_length: 1024 # 2 ** 10
-dim_f: 2048 # 2 ** 10
-dim_t: 256 # 2 ** 8
+dim_f: 2048 # 2 ** 11
+dim_t: 128 # 2 ** 7
 dim_c: 4
-
-wandb_api_key: ${oc.env:wandb_api_key}

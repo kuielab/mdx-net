@@ -46,3 +46,4 @@ openunmix
 musdb
 asteroid>=0.5.0
 demucs
+wavfile

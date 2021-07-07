@@ -1,8 +1,0 @@
-
-defaults:
-  - four_2080ti_vocals.yaml
-
-trainer:
-  check_val_every_n_epoch: 1
-datamodule:
-  data_dir: ${work_dir}/../data/musdbDEV

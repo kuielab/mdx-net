@@ -11,17 +11,16 @@ from torch.nn.functional import mse_loss
 from src.models.modules import Conv_TDF
 from src.utils.utils import sdr
 
-dim_c = 4  # CaC
-
 
 class AbstractMDXNet(LightningModule):
     __metaclass__ = ABCMeta
 
-    def __init__(self, target_name, lr, optimizer, dim_f, dim_t, n_fft, hop_length):
+    def __init__(self, target_name, lr, optimizer, dim_c, dim_f, dim_t, n_fft, hop_length):
         super().__init__()
         self.target_name = target_name
         self.lr = lr
         self.optimizer = optimizer
+        self.dim_c = dim_c
         self.dim_f = dim_f
         self.dim_t = dim_t
         self.n_fft = n_fft
@@ -31,34 +30,23 @@ class AbstractMDXNet(LightningModule):
         self.n_bins = self.n_fft // 2 + 1
         self.sampling_size = hop_length * (self.dim_t - 1)
         self.window = nn.Parameter(torch.hann_window(window_length=self.n_fft, periodic=True), requires_grad=False)
+        self.freq_pad = nn.Parameter(torch.zeros([1, dim_c, self.n_bins - self.dim_f, self.dim_t]), requires_grad=False)
+        self.input_sample_shape = (self.stft(torch.zeros([1, 2, self.sampling_size]))).shape
 
     def configure_optimizers(self):
         if self.optimizer == 'rmsprop':
             return torch.optim.RMSprop(self.parameters(), self.lr)
 
     def on_train_start(self) -> None:
-        if self.current_epoch > 0:
-            pass
-
-        # Initialization TODO: check resume from checkpoint (epoch>0 checked)
-        for p in self.parameters():
-            if p.dim() > 1:
-                nn.init.xavier_normal_(p)
+        pass
 
     def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
         mixture_wav, target_wav = args[0]
 
-        batch_size = mixture_wav.shape[0]
-
-        mix_spec = self.stft(mixture_wav)[:, :, :self.dim_f]
-        spec_hat = self(mix_spec)
-        pad = torch.zeros([batch_size, dim_c, self.n_bins - self.dim_f, self.dim_t],
-                          # dtype=spec_hat.dtype,
-                          device=spec_hat.device)
-
-        target_wav_hat = self.istft(torch.cat([spec_hat, pad], -2))
-
-        loss = mse_loss(target_wav_hat, target_wav)
+        mix_spec = self.stft(mixture_wav)
+        tar_spec = self.stft(target_wav)
+        tar_spec_hat = self(mix_spec)
+        loss = mse_loss(tar_spec_hat, tar_spec)
         self.log("train/loss", loss, on_step=False, on_epoch=True, prog_bar=True)
 
         return {"loss": loss}
@@ -70,13 +58,13 @@ class AbstractMDXNet(LightningModule):
         target_wav_hats = []
 
         for mixture_wav in mixture_wav_batched[0].split(batch_size):
-            mix_spec = self.stft(mixture_wav)[:, :, :self.dim_f]
+            mix_spec = self.stft(mixture_wav)
             spec_hat = self(mix_spec)
-            pad = torch.zeros([mix_spec.shape[0], dim_c, self.n_bins - self.dim_f, self.dim_t],
-                              # dtype=spec_hat.dtype,
-                              device=spec_hat.device)
+            # pad = torch.zeros([mix_spec.shape[0], dim_c, self.n_bins - self.dim_f, self.dim_t],
+            #                   # dtype=spec_hat.dtype,
+            #                   device=spec_hat.device)
 
-            target_wav_hat = self.istft(torch.cat([spec_hat, pad], -2))
+            target_wav_hat = self.istft(spec_hat)
             target_wav_hat = target_wav_hat.cpu().detach().numpy()
             target_wav_hats.append(target_wav_hat)
 
@@ -90,10 +78,11 @@ class AbstractMDXNet(LightningModule):
         x = x.reshape([-1, self.sampling_size])
         x = torch.stft(x, n_fft=self.n_fft, hop_length=self.hop_length, window=self.window, center=True)
         x = x.permute([0, 3, 1, 2])
-        x = x.reshape([-1, 2, 2, self.n_bins, self.dim_t]).reshape([-1, dim_c, self.n_bins, self.dim_t])
-        return x
+        x = x.reshape([-1, 2, 2, self.n_bins, self.dim_t]).reshape([-1, self.dim_c, self.n_bins, self.dim_t])
+        return x[:, :, :self.dim_f]
 
     def istft(self, spec):
+        spec = torch.cat([spec, self.freq_pad.repeat([spec.shape[0], 1, 1, 1])], -2)
         spec = spec.reshape([-1, 2, 2, self.n_bins, self.dim_t]).reshape([-1, 2, self.n_bins, self.dim_t])
         spec = spec.permute([0, 2, 3, 1])
         spec = torch.istft(spec, n_fft=self.n_fft, hop_length=self.hop_length, window=self.window, center=True)
@@ -101,10 +90,10 @@ class AbstractMDXNet(LightningModule):
 
 
 class ConvTDFNet(AbstractMDXNet):
-    def __init__(self, target_name, lr, optimizer, dim_f, dim_t, n_fft, hop_length,
+    def __init__(self, target_name, lr, optimizer, dim_c, dim_f, dim_t, n_fft, hop_length,
                  num_blocks, l, g, k, bn, bias):
 
-        super(ConvTDFNet, self).__init__(target_name, lr, optimizer, dim_f, dim_t, n_fft, hop_length)
+        super(ConvTDFNet, self).__init__(target_name, lr, optimizer, dim_c, dim_f, dim_t, n_fft, hop_length)
         self.save_hyperparameters()
 
         # Important!: Required!
@@ -119,7 +108,7 @@ class ConvTDFNet(AbstractMDXNet):
         t_scale = np.arange(self.n)
 
         self.first_conv = nn.Sequential(
-            nn.Conv2d(in_channels=dim_c, out_channels=g, kernel_size=(1, 1)),
+            nn.Conv2d(in_channels=self.dim_c, out_channels=g, kernel_size=(1, 1)),
             nn.BatchNorm2d(g),
             nn.ReLU(),
         )
@@ -160,7 +149,7 @@ class ConvTDFNet(AbstractMDXNet):
             self.decoding_blocks.append(Conv_TDF(c, l, f, k, bn, bias=bias))
 
         self.final_conv = nn.Sequential(
-            nn.Conv2d(in_channels=c, out_channels=dim_c, kernel_size=(1, 1)),
+            nn.Conv2d(in_channels=c, out_channels=self.dim_c, kernel_size=(1, 1)),
         )
 
     def forward(self, x):

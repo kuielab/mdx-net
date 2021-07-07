@@ -49,12 +49,15 @@ class MusdbTrainDataset(MusdbWrapperDataset):
 
         check_target_valid(target_name)
         self.target_name = target_name
-        self.target_wav_name = target_name + '.wav'
         self.sampling_size = sampling_size
 
         musdb_path = Path(data_dir)
 
         dataset_names = [musdb_path.joinpath('train')]
+        metadata_caches = [musdb_path.joinpath('metadata').joinpath('train.pkl')]
+        if not musdb_path.joinpath('metadata').exists():
+            os.mkdir(musdb_path.joinpath('metadata'))
+
         if augmentation:
             for p in range(-3, 4):
                 for t in range(-30, 40, 10):
@@ -63,22 +66,34 @@ class MusdbTrainDataset(MusdbWrapperDataset):
                     else:
                         split = f'train_p={p}_t={t}'
                         dataset_names.append(musdb_path.joinpath(split))
+                        metadata_caches.append(musdb_path.joinpath('metadata').joinpath(split + '.pkl'))
 
         self.metadata = dict([(s_name, []) for s_name in self.source_names])
 
-        for i, dataset_path in tqdm(enumerate(dataset_names)):
-            track_names = sorted(os.listdir(dataset_path))
-            for track_name in track_names:
-                track_path = dataset_path.joinpath(track_name)
-                track_length = load(track_path.joinpath('vocals.wav')).shape[-1]
-                for s_name in os.listdir(track_path):
-                    s_name = s_name[:-4]
-                    if s_name in self.source_names:
-                        self.metadata[s_name].append((track_path, track_length))
+        for i, (dataset, metadata_cache) in enumerate(tqdm(zip(dataset_names, metadata_caches))):
+
+            # Check cached
+            try:
+                print('try to load metadata cache')
+                metadata = torch.load(metadata_cache)
+            except FileNotFoundError:
+                print('creating metadata for', dataset)
+                metadata = {s_name: [] for s_name in self.source_names}
+                for track_name in sorted(os.listdir(dataset)):
+                    track_path = dataset.joinpath(track_name)
+                    track_length = load(track_path.joinpath('vocals.wav')).shape[-1]
+                    for s_name in os.listdir(track_path):
+                        s_name = s_name[:-4]
+                        if s_name in self.source_names:
+                            metadata[s_name].append((track_path, track_length))
+                torch.save(metadata, metadata_cache)
+
+            for key in metadata.keys():
+                self.metadata[key] += metadata[key]
+
             if i == 0:
-                self.lengths = [length for path, length in self.metadata['vocals']]
-                self.num_tracks = len(self.lengths)
-                self.num_iter = sum(self.lengths) // self.sampling_size + 1
+                lengths = [length for path, length in self.metadata['vocals']]
+                self.num_iter = sum(lengths) // self.sampling_size + 1
 
     def __getitem__(self, _):
         sources = []

@@ -80,7 +80,8 @@ class Musdb18hqDataModule(LightningDataModule):
             os.mkdir(valid_root)
 
             for track in kwargs['validation_set']:
-                move(train_root.joinpath(track), valid_root.joinpath(track))
+                if train_root.joinpath(track).exists():
+                    move(train_root.joinpath(track), valid_root.joinpath(track))
 
             print()
         else:

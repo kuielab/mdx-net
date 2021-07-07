@@ -1,0 +1,39 @@
+# @package _global_
+
+# to execute this experiment run:
+# python run.py experiment=example_simple.yaml
+
+defaults:
+  - multigpu_default.yaml
+
+# Training Environment
+target_name: bass
+batch_size: 4
+gpus: 4
+accelerator: ddp
+lr: 0.0003
+check_val_every_n_epoch: 10
+seed: 2021
+deterministic: True
+num_workers: 0 # num of cpus
+pin_memory: False # True then faster
+
+# STFT
+n_fft: 16384
+dim_f: 2048
+dim_t: 128
+dim_c: 4
+hop_length: 1024
+
+# data augmentation
+external_datasets:
+augmentation: True
+
+model:
+  # model configuration
+  num_blocks: 9
+  l: 5
+  g: 32
+  k: 3
+  bn: 8
+  bias: False

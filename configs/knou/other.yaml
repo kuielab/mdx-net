@@ -1,0 +1,38 @@
+# @package _global_
+
+# to execute this experiment run:
+# python run.py experiment=example_simple.yaml
+
+defaults:
+  - multigpu_default.yaml
+
+# Training Environment
+target_name: other
+batch_size: 10
+gpus: 4
+sync_batchnorm: True
+lr: 0.0002
+check_val_every_n_epoch: 10
+seed: 2021
+num_workers: 72 # num of cpus
+pin_memory: True # True then faster
+
+# STFT
+n_fft: 8192
+dim_f: 2048
+dim_t: 128
+dim_c: 4
+hop_length: 1024
+
+# data augmentation
+external_datasets:
+augmentation: True
+
+model:
+  # model configuration
+  num_blocks: 9
+  l: 5
+  g: 32
+  k: 3
+  bn: 8
+  bias: False

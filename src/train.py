@@ -1,6 +1,7 @@
 from typing import List, Optional
 
 import hydra
+import torch
 from omegaconf import DictConfig
 from pytorch_lightning import (
     Callback,
@@ -82,6 +83,17 @@ def train(config: DictConfig) -> Optional[float]:
         logger=logger,
     )
 
+    if trainer.auto_lr_find:
+        log.info("Auto lr find")
+
+        with torch.no_grad():
+            for param in model.parameters():
+                if param.dim() > 1:
+                    torch.nn.init.kaiming_normal_(param)
+
+        res = trainer.tuner.lr_find(model, datamodule, num_training=2000, min_lr=1e-5)
+        print(res.suggestion())
+        exit(-1)
     # Train the model
     log.info("Starting training!")
     trainer.fit(model=model, datamodule=datamodule)

@@ -1,0 +1,10 @@
+# @package _global_
+
+# to execute this experiment run:
+# python run.py experiment=example_simple.yaml
+
+defaults:
+  - multigpu_default.yaml
+
+target_name: vocals
+batch_size: 10

@@ -47,7 +47,7 @@ class AbstractMDXNet(LightningModule):
         tar_spec = self.stft(target_wav)
         tar_spec_hat = self(mix_spec)
         loss = mse_loss(tar_spec_hat, tar_spec)
-        self.log("train/loss", loss, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("train/loss", loss, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
 
         return {"loss": loss}
 

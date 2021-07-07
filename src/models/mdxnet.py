@@ -60,10 +60,6 @@ class AbstractMDXNet(LightningModule):
         for mixture_wav in mixture_wav_batched[0].split(batch_size):
             mix_spec = self.stft(mixture_wav)
             spec_hat = self(mix_spec)
-            # pad = torch.zeros([mix_spec.shape[0], dim_c, self.n_bins - self.dim_f, self.dim_t],
-            #                   # dtype=spec_hat.dtype,
-            #                   device=spec_hat.device)
-
             target_wav_hat = self.istft(spec_hat)
             target_wav_hat = target_wav_hat.cpu().detach().numpy()
             target_wav_hats.append(target_wav_hat)

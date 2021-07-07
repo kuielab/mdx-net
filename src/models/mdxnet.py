@@ -52,8 +52,8 @@ class AbstractMDXNet(LightningModule):
         return {"loss": loss}
 
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
-        batch_size, index, mixture_wav_batched, target_wav = args[0]
-        batch_size, index = batch_size.item(), index.item()
+        num_tracks, batch_size, index, mixture_wav_batched, target_wav = args[0]
+        num_tracks, batch_size, index = num_tracks.item(), batch_size.item(), index.item()
 
         target_wav_hats = []
 
@@ -66,8 +66,12 @@ class AbstractMDXNet(LightningModule):
 
         target_wav_hat = np.vstack(target_wav_hats)[:, :, self.trim:-self.trim]
         target_wav_hat = np.concatenate(target_wav_hat, axis=-1)[:, :target_wav.shape[-1]]
-        loss = sdr(target_wav[0].cpu().detach().numpy(), target_wav_hat)
-        self.log("val/loss", loss, False, True, False, True, sync_dist=True)
+        loss = sdr(target_wav[0].cpu().detach().numpy(), target_wav_hat)/num_tracks
+        self.log("val/sdr", loss, False, True, False, True,
+                 reduce_fx=torch.sum,
+                 sync_dist=True,
+                 sync_dist_op="sum")
+
         return {'track_id': index, 'track': target_wav_hat}
 
     def stft(self, x):

@@ -5,6 +5,8 @@
 # python run.py -m hparams_search=mnist_optuna experiment=example_simple hydra.sweeper.n_trials=30
 # python run.py -m hparams_search=mnist_optuna experiment=example_simple logger=wandb
 
+# 13:
+  # vocals: 0.0003694589484218666
 defaults:
   - override /hydra/sweeper: optuna
   - override /callbacks: none
@@ -26,7 +28,7 @@ hydra:
     direction: minimize
 
     # number of experiments that will be executed
-    n_trials: 20
+    n_trials: 15
 
     # choose Optuna hyperparameter sampler
     # learn more here: https://optuna.readthedocs.io/en/stable/reference/samplers.html
@@ -46,6 +48,9 @@ hydra:
     search_space:
       model.lr:
         type: float
-        low: 0.0001
-        high: 0.001
+        low: 0.0002
+        high: 0.0008
+      trainer.sync_batchnorm:
+        type: categorical
+        choices: [ True, False ]
 

@@ -1,9 +1,11 @@
 import dotenv
 import hydra
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 
 # load environment variables from `.env` file if it exists
 # recursively searches for `.env` in all folders starting from work dir
+from pytorch_lightning.utilities import rank_zero_info
+
 dotenv.load_dotenv(override=True)
 
 
@@ -14,6 +16,8 @@ def main(config: DictConfig):
     # Read more here: https://github.com/facebookresearch/hydra/issues/934
     from src.train import train
     from src.utils import utils
+
+    rank_zero_info(OmegaConf.to_yaml(config))
 
     # A couple of optional utilities:
     # - disabling python warnings

@@ -8,6 +8,7 @@ defaults:
   - logger: null # set logger here or use command line (e.g. `python run.py logger=wandb`)
 
   - experiment: null
+  - knou: null
   - hparams_search: null
 
   - hydra: default.yaml

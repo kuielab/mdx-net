@@ -147,7 +147,7 @@ class MusdbValidationDataset(MusdbWrapperDataset):
         batches = [mixture[:, i * self.true_samples: i * self.true_samples + self.sampling_size] for i in
                    range(num_chunks)]
 
-        return self.batch_size, index, np.stack(batches), target
+        return self.num_iter, self.batch_size, index, np.stack(batches), target
 
     def __len__(self):
         return self.num_iter

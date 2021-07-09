@@ -6,7 +6,8 @@
 # python run.py -m hparams_search=mnist_optuna experiment=example_simple logger=wandb
 
 # 13:
-  # vocals: 0.0003694589484218666
+  # vocals: 0.0003694589484218666 or 0.00034702 with sync_batchnorm
+
 defaults:
   - override /hydra/sweeper: optuna
   - override /callbacks: none

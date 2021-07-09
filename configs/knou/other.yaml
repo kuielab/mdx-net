@@ -8,14 +8,12 @@ defaults:
 
 # Training Environment
 target_name: other
-batch_size: 10
+batch_size: 6
 gpus: 4
 sync_batchnorm: True
-lr: 0.0002
+lr: 0.0004368074427218438
 check_val_every_n_epoch: 10
 seed: 2021
-num_workers: 72 # num of cpus
-pin_memory: True # True then faster
 
 # STFT
 n_fft: 8192

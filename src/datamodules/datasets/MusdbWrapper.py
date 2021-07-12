@@ -59,8 +59,8 @@ class MusdbTrainDataset(MusdbWrapperDataset):
             os.mkdir(musdb_path.joinpath('metadata'))
 
         if augmentation:
-            for p in range(-3, 4):
-                for t in range(-30, 40, 10):
+            for p in range(-2, 3):
+                for t in range(-20, 30, 10):
                     if (p, t) == (0, 0):  # original setting
                         pass
                     else:

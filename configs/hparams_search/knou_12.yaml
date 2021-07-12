@@ -48,6 +48,6 @@ hydra:
     search_space:
       model.lr:
         type: float
-        low: 0.0002
-        high: 0.0008
+        low: 0.00005
+        high: 0.0003
 

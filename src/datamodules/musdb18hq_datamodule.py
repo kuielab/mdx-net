@@ -83,7 +83,6 @@ class Musdb18hqDataModule(LightningDataModule):
                 if train_root.joinpath(track).exists():
                     move(train_root.joinpath(track), valid_root.joinpath(track))
 
-            print()
         else:
             valid_files = os.listdir(Path(self.data_dir).joinpath('valid'))
             assert set(valid_files) == set(kwargs['validation_set'])

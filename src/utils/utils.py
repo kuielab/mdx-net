@@ -12,7 +12,6 @@ from omegaconf import DictConfig, OmegaConf
 from pytorch_lightning.loggers.wandb import WandbLogger
 from pytorch_lightning.utilities import rank_zero_only
 
-from tests.helpers.run_command import run_command
 
 
 def sdr(ref, est):

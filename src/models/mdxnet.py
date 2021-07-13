@@ -1,5 +1,5 @@
 from abc import ABCMeta
-from typing import Optional
+from typing import Optional, Union, Dict, List, Tuple, Any
 
 import numpy as np
 import torch
@@ -66,8 +66,8 @@ class AbstractMDXNet(LightningModule):
 
         target_wav_hat = np.vstack(target_wav_hats)[:, :, self.trim:-self.trim]
         target_wav_hat = np.concatenate(target_wav_hat, axis=-1)[:, :target_wav.shape[-1]]
-        loss = sdr(target_wav[0].cpu().detach().numpy(), target_wav_hat)/num_tracks
-        self.log("val/sdr", loss, False, True, False, True,
+        loss = sdr(target_wav[0].cpu().detach().numpy(), target_wav_hat) / num_tracks
+        self.log("val/sdr", loss, prog_bar=False, logger=True, on_step=False, on_epoch=True,
                  reduce_fx=torch.sum,
                  sync_dist=True,
                  sync_dist_op="sum")

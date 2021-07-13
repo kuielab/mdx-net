@@ -68,8 +68,8 @@ def evaluation(config: DictConfig):
     for i, track in tqdm(enumerate(sorted(listdir(data_dir)))):
         track = data_dir.joinpath(track)
         mixture = load(track.joinpath('mixture.wav'))
-        # target_hat = {source: separate_with_ckpt(batch_size, models[source], onnxs[source], mixture) for source in sources}
-        target_hat = {source: separate_with_ckpt(batch_size, models[source], ckpts[source], mixture) for source in sources}
+        target_hat = {source: separate(batch_size, models[source], onnxs[source], mixture) for source in sources}
+        # target_hat = {source: separate_with_ckpt(batch_size, models[source], ckpts[source], mixture) for source in sources}
 
         scores = {source: sdr(load(track.joinpath(source + '.wav')), target_hat[source]) for source in sources}
 

@@ -112,7 +112,7 @@ class MusdbTrainDataset(MusdbWrapperDataset):
 
 class MusdbValidationDataset(MusdbWrapperDataset):
 
-    def __init__(self, batch_size, data_dir, target_name, sampling_size, n_fft):
+    def __init__(self, batch_size, data_dir, target_name, sampling_size, n_fft, num_valid_process):
         super().__init__(data_dir)
 
         check_target_valid(target_name)
@@ -132,9 +132,13 @@ class MusdbValidationDataset(MusdbWrapperDataset):
         self.true_samples = sampling_size - 2 * self.trim
 
         self.tracks = [load(track.joinpath('vocals.wav')) for track in self.file_paths]
-        self.num_iter = len(self.track_names)
+        self.num_true_tracks = len(self.track_names)
+        self.num_iter = self.num_true_tracks + self.num_true_tracks % num_valid_process
 
     def __getitem__(self, index):
+        if index >= self.num_true_tracks:
+            return -1, -1, -1, -1, -1
+
         files = [self.file_paths[index].joinpath(s_name) for s_name in ['mixture.wav', self.target_wav_name]]
         mixture, target = [load(file) for file in files]
 
@@ -147,7 +151,7 @@ class MusdbValidationDataset(MusdbWrapperDataset):
         batches = [mixture[:, i * self.true_samples: i * self.true_samples + self.sampling_size] for i in
                    range(num_chunks)]
 
-        return self.num_iter, self.batch_size, index, np.stack(batches), target
+        return self.num_true_tracks, self.batch_size, index, np.stack(batches), target
 
     def __len__(self):
         return self.num_iter

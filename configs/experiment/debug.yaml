@@ -13,10 +13,10 @@ target_name: vocals
 batch_size: 4
 gpus: 1
 lr: 0.0003
-check_val_every_n_epoch: 10
+check_val_every_n_epoch: 1
 seed: 2021
 deterministic: True
-num_workers: 0 # num of cpus
+num_workers: 2 # num of cpus
 pin_memory: False # True then faster
 
 # TODO: check effects
@@ -59,7 +59,7 @@ model:
   hop_length: ${hop_length}
 
 trainer:
-  max_epochs: 2000
+  max_epochs: 3
   min_epochs: 1
   sync_batchnorm: ${sync_batchnorm}
   precision: 16

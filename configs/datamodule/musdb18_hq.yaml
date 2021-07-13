@@ -7,6 +7,7 @@ hop_length: ${model.hop_length}
 dim_c: ${model.dim_c}
 dim_f: ${model.dim_f}
 dim_t: ${model.dim_t}
+gpus: ${trainer.gpus}
 sampling_rate: 44100
 
 batch_size: 8

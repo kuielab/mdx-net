@@ -17,7 +17,7 @@ def separate(batch_size, model, onnx_path: Path, mix):
     mix_waves = []
     i = 0
     while i < n_sample + pad:
-        waves = np.array(mix_p[:, i:i + model.sampling_size])
+        waves = np.array(mix_p[:, i:i + model.sampling_size], dtype=np.float32)
         mix_waves.append(waves)
         i += gen_size
     mix_waves_batched = torch.tensor(mix_waves, dtype=torch.float32).split(batch_size)

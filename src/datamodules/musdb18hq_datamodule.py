@@ -71,6 +71,9 @@ class Musdb18hqDataModule(LightningDataModule):
         self.data_train: Optional[Dataset] = None
         self.data_val: Optional[Dataset] = None
         self.data_test: Optional[Dataset] = None
+        self.num_valid_process = kwargs['gpus']
+        if self.num_valid_process in [None, 0]:
+            self.num_valid_process = 1
 
         if not os.path.exists(self.data_dir + "/valid"):
             from shutil import move
@@ -106,7 +109,8 @@ class Musdb18hqDataModule(LightningDataModule):
                                                self.data_dir,
                                                self.target_name,
                                                self.sampling_size,
-                                               self.n_fft)
+                                               self.n_fft,
+                                               self.num_valid_process)
 
     def train_dataloader(self):
         return DataLoader(

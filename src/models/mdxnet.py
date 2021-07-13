@@ -64,6 +64,8 @@ class AbstractMDXNet(LightningModule):
             target_wav_hat = target_wav_hat.cpu().detach().numpy()
             target_wav_hats.append(target_wav_hat)
 
+        print(index)
+
         target_wav_hat = np.vstack(target_wav_hats)[:, :, self.trim:-self.trim]
         target_wav_hat = np.concatenate(target_wav_hat, axis=-1)[:, :target_wav.shape[-1]]
         loss = sdr(target_wav[0].cpu().detach().numpy(), target_wav_hat)/num_tracks

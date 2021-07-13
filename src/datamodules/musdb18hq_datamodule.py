@@ -125,6 +125,7 @@ class Musdb18hqDataModule(LightningDataModule):
             num_workers=self.num_workers,
             pin_memory=self.pin_memory,
             shuffle=False,
+            drop_last=True
         )
 
     def test_dataloader(self):

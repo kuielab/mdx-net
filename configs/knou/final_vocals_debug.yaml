@@ -1,0 +1,40 @@
+# @package _global_
+
+# to execute this experiment run:
+# python run.py experiment=example_simple.yaml
+
+defaults:
+  - multigpu_default.yaml
+
+# Training Environment
+target_name: vocals
+batch_size: 3
+gpus: 4
+sync_batchnorm: False
+lr: 0.00005
+check_val_every_n_epoch: 1
+seed: 2021
+
+# STFT
+n_fft: 8192
+dim_f: 2048
+dim_t: 256
+dim_c: 4
+hop_length: 1024
+
+# data augmentation
+external_datasets:
+augmentation: False
+
+model:
+  # model configuration
+  num_blocks: 11
+  l: 4
+  g: 36
+  k: 3
+  bn: 8
+  bias: False
+
+trainer:
+  max_epochs: 2
+  check_val_every_n_epoch: 1

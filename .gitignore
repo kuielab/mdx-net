@@ -145,3 +145,6 @@ logs/
 wandb/
 .env
 .autoenv
+
+onnx/*
+outputs/*

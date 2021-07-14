@@ -44,9 +44,10 @@ class UploadValidTrack(Callback):
         batch_idx: int,
         dataloader_idx: int,
     ) -> None:
+        if outputs is None:
+            return
         track_id = outputs['track_id']
         track = outputs['track']
-        pass
 
         logger = get_wandb_logger(trainer=trainer)
         experiment = logger.experiment

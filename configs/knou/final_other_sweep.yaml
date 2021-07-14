@@ -2,7 +2,8 @@
 
 # to execute this experiment run:
 # python run.py experiment=example_simple.yaml
-
+# python run.py -m hparams_search=knou_12 knou=final_other_sweep
+# {'model.lr': 0.00015855604910877148}
 defaults:
   - final_other.yaml
   - override /logger: tensorboard.yaml

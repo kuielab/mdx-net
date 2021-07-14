@@ -1,5 +1,5 @@
 from abc import ABCMeta
-from typing import Optional
+from typing import Optional, Union, Dict, List, Tuple, Any
 
 import numpy as np
 import torch
@@ -42,7 +42,6 @@ class AbstractMDXNet(LightningModule):
 
     def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
         mixture_wav, target_wav = args[0]
-
         mix_spec = self.stft(mixture_wav)
         tar_spec = self.stft(target_wav)
         tar_spec_hat = self(mix_spec)
@@ -54,25 +53,32 @@ class AbstractMDXNet(LightningModule):
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
         num_tracks, batch_size, index, mixture_wav_batched, target_wav = args[0]
         num_tracks, batch_size, index = num_tracks.item(), batch_size.item(), index.item()
+        if num_tracks < 0:
+            self.log("val/sdr", 0, prog_bar=False, logger=True, on_step=False, on_epoch=True,
+                     reduce_fx=torch.sum,
+                     sync_dist=True,
+                     sync_dist_op="sum")
+            return None
+        else:
+            target_wav_hats = []
 
-        target_wav_hats = []
+            for mixture_wav in mixture_wav_batched[0].split(batch_size):
+                mix_spec = self.stft(mixture_wav)
+                spec_hat = self(mix_spec)
+                target_wav_hat = self.istft(spec_hat)
+                target_wav_hat = target_wav_hat.cpu().detach().numpy()
+                target_wav_hats.append(target_wav_hat)
 
-        for mixture_wav in mixture_wav_batched[0].split(batch_size):
-            mix_spec = self.stft(mixture_wav)
-            spec_hat = self(mix_spec)
-            target_wav_hat = self.istft(spec_hat)
-            target_wav_hat = target_wav_hat.cpu().detach().numpy()
-            target_wav_hats.append(target_wav_hat)
+            target_wav_hat = np.vstack(target_wav_hats)[:, :, self.trim:-self.trim]
+            target_wav_hat = np.concatenate(target_wav_hat, axis=-1)[:, :target_wav.shape[-1]]
+            loss = sdr(target_wav[0].cpu().detach().numpy(), target_wav_hat) / num_tracks
 
-        target_wav_hat = np.vstack(target_wav_hats)[:, :, self.trim:-self.trim]
-        target_wav_hat = np.concatenate(target_wav_hat, axis=-1)[:, :target_wav.shape[-1]]
-        loss = sdr(target_wav[0].cpu().detach().numpy(), target_wav_hat)/num_tracks
-        self.log("val/sdr", loss, False, True, False, True,
-                 reduce_fx=torch.sum,
-                 sync_dist=True,
-                 sync_dist_op="sum")
+            self.log("val/sdr", loss, prog_bar=False, logger=True, on_step=False, on_epoch=True,
+                     reduce_fx=torch.sum,
+                     sync_dist=True,
+                     sync_dist_op="sum")
 
-        return {'track_id': index, 'track': target_wav_hat}
+            return {'track_id': index, 'track': target_wav_hat}
 
     def stft(self, x):
         x = x.reshape([-1, self.sampling_size])

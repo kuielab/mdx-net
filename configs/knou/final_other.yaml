@@ -11,7 +11,7 @@ target_name: other
 batch_size: 3
 gpus: 4
 sync_batchnorm: False
-lr: 0.00005
+lr: 0.00015855604910877148
 check_val_every_n_epoch: 10
 seed: 2021
 

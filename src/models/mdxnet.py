@@ -54,7 +54,11 @@ class AbstractMDXNet(LightningModule):
         num_tracks, batch_size, index, mixture_wav_batched, target_wav = args[0]
         num_tracks, batch_size, index = num_tracks.item(), batch_size.item(), index.item()
         if num_tracks < 0:
-            pass
+            self.log("val/sdr", 0, prog_bar=False, logger=True, on_step=False, on_epoch=True,
+                     reduce_fx=torch.sum,
+                     sync_dist=True,
+                     sync_dist_op="sum")
+            return None
         else:
             target_wav_hats = []
 
@@ -69,7 +73,6 @@ class AbstractMDXNet(LightningModule):
             target_wav_hat = np.concatenate(target_wav_hat, axis=-1)[:, :target_wav.shape[-1]]
             loss = sdr(target_wav[0].cpu().detach().numpy(), target_wav_hat) / num_tracks
 
-            print(index)
             self.log("val/sdr", loss, prog_bar=False, logger=True, on_step=False, on_epoch=True,
                      reduce_fx=torch.sum,
                      sync_dist=True,

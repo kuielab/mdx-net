@@ -42,10 +42,13 @@ class AbstractMDXNet(LightningModule):
 
     def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
         mixture_wav, target_wav = args[0]
+        # mix_spec = self.stft(mixture_wav)
+        # tar_spec = self.stft(target_wav)
+        # tar_spec_hat = self(mix_spec)
+        # loss = mse_loss(tar_spec_hat, tar_spec)
         mix_spec = self.stft(mixture_wav)
-        tar_spec = self.stft(target_wav)
-        tar_spec_hat = self(mix_spec)
-        loss = mse_loss(tar_spec_hat, tar_spec)
+        target_wav_hat = self.istft(self(mix_spec))
+        loss = mse_loss(target_wav_hat, target_wav)
         self.log("train/loss", loss, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
 
         return {"loss": loss}

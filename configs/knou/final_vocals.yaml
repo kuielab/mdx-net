@@ -8,12 +8,12 @@ defaults:
 
 # Training Environment
 target_name: vocals
-batch_size: 3
-gpus: 4
-sync_batchnorm: False
-lr: 0.0002678509666518902
+batch_size: 4
+gpus: 2
+sync_batchnorm: True
+lr: 0.0001
 check_val_every_n_epoch: 10
-seed: 2021
+seed: 2020
 
 # STFT
 dim_f: 2048
@@ -28,8 +28,9 @@ augmentation: True
 model:
   # model configuration
   num_blocks: 11
-  l: 4
-  g: 36
+  l: 3 # temporal
+  g: 32 # temporal
   k: 3
   bn: 8
   bias: False
+

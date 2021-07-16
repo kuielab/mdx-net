@@ -6,10 +6,10 @@ watch_model:
   log: "all"
   log_freq: 100
 
-upload_valid_track:
-  _target_: src.callbacks.wandb_callbacks.UploadValidTrack
-  crop: 3
-  upload_after_n_epoch: -1
+#upload_valid_track:
+#  _target_: src.callbacks.wandb_callbacks.UploadValidTrack
+#  crop: 3
+#  upload_after_n_epoch: -1
 
 #upload_code_as_artifact:
 #  _target_: src.callbacks.wandb_callbacks.UploadCodeAsArtifact

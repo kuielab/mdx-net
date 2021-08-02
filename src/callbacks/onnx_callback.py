@@ -24,7 +24,7 @@ class MakeONNXCallback(Callback):
         model = pl_module.__class__(**dict((name, pl_module.__dict__[name]) for name in var))
         model.load_state_dict(pl_module.state_dict())
 
-        target_dir = '{}epoch_{}'.format(self.dirpath, pl_module.current_epoch)
+        target_dir = '{}epoch_{}'.format(self.dirpath, pl_module.current_epoch+1)
         if not os.path.exists(target_dir):
             os.mkdir(target_dir)
 

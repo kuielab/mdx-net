@@ -2,20 +2,20 @@
 
 # specify here default training configuration
 defaults:
-  - trainer: minimal.yaml
-  - datamodule: musdb18_hq.yaml
-  - callbacks: default.yaml # set this to null if you don't want to use callbacks
+  - trainer: minimal
+  - datamodule: musdb18_hq
+  - callbacks: default # set this to null if you don't want to use callbacks
   - logger: null # set logger here or use command line (e.g. `python run.py logger=wandb`)
 
   - experiment: null
-  - knou: null
   - hparams_search: null
 
-  - hydra: default.yaml
+  - hydra: default
 
   # enable color logging
   - override hydra/hydra_logging: colorlog
   - override hydra/job_logging: colorlog
+
 
 # path to original working directory
 # hydra hijacks working directory by changing it to the current log directory,

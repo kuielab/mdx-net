@@ -2,7 +2,7 @@
 
 wandb:
   _target_: pytorch_lightning.loggers.wandb.WandbLogger
-  project: mdx_${datamodule.target_name}
+  project: mdx_${model.target_name}
   name: null
   save_dir: "."
   offline: False # set True to store all logs only locally

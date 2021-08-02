@@ -1,0 +1,87 @@
+# @package _global_
+
+# to execute this experiment run:
+# python run.py experiment=example_simple.yaml
+
+defaults:
+  - override /trainer: minimal.yaml
+  - override /callbacks: none.yaml
+  - override /logger: none.yaml
+
+# Training Environment
+target_name: vocals
+batch_size: 4
+gpus: 1
+lr: 0.0003
+check_val_every_n_epoch: 1
+seed: 2021
+deterministic: True
+num_workers: 2 # num of cpus
+pin_memory: False # True then faster
+
+# TODO: check effects
+sync_batchnorm: False
+resume_from_checkpoint:
+
+# STFT
+n_fft: 6144
+dim_f: 2048
+dim_t: 128
+dim_c: 4
+hop_length: 1024
+
+# data augmentation
+external_datasets:
+augmentation: False
+
+model:
+  # model
+  _target_: src.models.mdxnet.ConvTDFNet
+  target_name: ${target_name}
+
+  # model configuration
+  num_blocks: 3
+  l: 5
+  g: 8
+  k: 3
+  bn: 8
+  bias: False
+
+  # optimizer
+  lr: ${lr}
+  optimizer: rmsprop
+
+  # stft
+  n_fft: ${n_fft}
+  dim_f: ${dim_f}
+  dim_t: ${dim_t}
+  dim_c: ${dim_c}
+  hop_length: ${hop_length}
+
+trainer:
+  max_epochs: 3
+  min_epochs: 1
+  sync_batchnorm: ${sync_batchnorm}
+  precision: 16
+  resume_from_checkpoint: ${resume_from_checkpoint}
+  auto_lr_find: False
+  amp_backend: "native"
+  amp_level: "O2"
+
+  deterministic: ${deterministic}
+  gpus: 1
+  check_val_every_n_epoch: ${check_val_every_n_epoch}
+
+# auto script
+datamodule:
+  num_workers: ${num_workers} # num of cpus
+  pin_memory: ${pin_memory} # True then faster
+  external_datasets: ${external_datasets}
+  augmentation: ${augmentation}
+  batch_size: ${batch_size}
+  target_name: ${target_name}
+  n_fft: ${n_fft}
+  hop_length: ${hop_length}
+  dim_c: ${dim_c}
+  dim_f: ${dim_f}
+  dim_t: ${dim_t}

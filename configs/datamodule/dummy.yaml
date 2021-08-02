@@ -2,12 +2,11 @@ _target_: src.datamodules.musdb18hq_datamodule.Musdb18hqDataModule
 
 data_dir: ${data_dir} # data_dir is specified in config.yaml
 target_name: # <- No default! Mandatory!
-n_fft: ${model.n_fft}
-hop_length: ${model.hop_length}
-dim_c: ${model.dim_c}
-dim_f: ${model.dim_f}
-dim_t: ${model.dim_t}
-gpus: ${trainer.gpus}
+n_fft: 4096
+hop_length: 128
+dim_c: 4
+dim_f: 2048
+dim_t: 256
 sampling_rate: 44100
 
 batch_size: 8
@@ -32,3 +31,6 @@ validation_set:
   - James May - On The Line
   - Meaxic - Take A Step
   - Traffic Experiment - Sirens
+
+
+gpus: 1

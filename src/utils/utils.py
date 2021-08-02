@@ -13,7 +13,6 @@ from omegaconf import DictConfig, OmegaConf
 from pytorch_lightning.loggers.wandb import WandbLogger
 from pytorch_lightning.utilities import rank_zero_only
 
-from tests.helpers.run_command import run_command
 
 
 def sdr(est, ref):
@@ -76,7 +75,7 @@ def extras(config: DictConfig) -> None:
         log.info("Forcing debugger friendly configuration! <config.trainer.fast_dev_run=True>")
         # Debuggers don't like GPUs or multiprocessing
         if config.trainer.get("gpus"):
-            config.trainer.gpus = 0
+            config.trainer.num_valid_process = 0
         if config.datamodule.get("pin_memory"):
             config.datamodule.pin_memory = False
         if config.datamodule.get("num_workers"):

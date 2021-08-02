@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 import seaborn as sn
 import torch
 import wandb
-import pytorch_lightning as pl
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.loggers import LoggerCollection, WandbLogger
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -45,7 +44,8 @@ class UploadValidTrack(Callback):
         batch_idx: int,
         dataloader_idx: int,
     ) -> None:
-        return None
+        if outputs is None:
+            return
         track_id = outputs['track_id']
         track = outputs['track']
 

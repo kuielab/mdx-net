@@ -3,7 +3,13 @@ _target_: src.datamodules.musdb18hq_datamodule.Musdb18hqDataModule
 data_dir: ${data_dir} # data_dir is specified in config.yaml
 sampling_rate: 44100
 
+source_names:
+  - bass
+  - drums
+  - other
+  - vocals
 target_name: ${model.target_name}
+
 n_fft: ${model.n_fft}
 hop_length: ${model.hop_length}
 dim_c: ${model.dim_c}

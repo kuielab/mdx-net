@@ -6,7 +6,7 @@ import numpy as np
 import onnxruntime as ort
 
 
-def separate(batch_size, model, onnx_path: Path, mix):
+def separate_with_onnx(batch_size, model, onnx_path: Path, mix):
     n_sample = mix.shape[1]
 
     trim = model.n_fft // 2
@@ -36,8 +36,7 @@ def separate(batch_size, model, onnx_path: Path, mix):
     return tar_signal
 
 
-def separate_with_ckpt(batch_size, model, ckpt_path: Path, mix):
-    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+def separate_with_ckpt(batch_size, model, ckpt_path: Path, mix, device):
     model = model.load_from_checkpoint(ckpt_path).to(device)
     true_samples = model.sampling_size - 2 * model.trim
 

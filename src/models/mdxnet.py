@@ -55,7 +55,8 @@ class AbstractMDXNet(LightningModule):
         mix_spec = self.stft(mix_wave)
 
         target_wave_hat = self.istft(self(mix_spec))
-        loss = sdr(target_wave_hat, target_wave)
+        loss = sdr(target_wave_hat.detach().cpu().numpy()[..., self.trim:-self.trim],
+                   target_wave.cpu().numpy()[..., self.trim:-self.trim])
         self.log("val/sdr", loss, logger=True, sync_dist=True, reduce_fx=torch.median, sync_dist_op="median")
 
         return {'loss': loss}

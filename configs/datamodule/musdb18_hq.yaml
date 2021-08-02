@@ -1,20 +1,23 @@
 _target_: src.datamodules.musdb18hq_datamodule.Musdb18hqDataModule
 
 data_dir: ${data_dir} # data_dir is specified in config.yaml
-target_name: # <- No default! Mandatory!
+sampling_rate: 44100
+
+target_name: ${model.target_name}
 n_fft: ${model.n_fft}
 hop_length: ${model.hop_length}
 dim_c: ${model.dim_c}
 dim_f: ${model.dim_f}
 dim_t: ${model.dim_t}
-sampling_rate: 44100
 
 batch_size: 8
 num_workers: 0
 pin_memory: False
 
 external_datasets:
-augmentation: True
+aug_params:
+  - 2
+  - 20
 
 validation_set:
   - Actions - One Minute Smile

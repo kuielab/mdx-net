@@ -1,4 +1,5 @@
 import os
+from os.path import exists, join
 from pathlib import Path
 from typing import Optional, Tuple
 
@@ -6,7 +7,7 @@ from pytorch_lightning import LightningDataModule
 from torch.utils.data import ConcatDataset, DataLoader, Dataset, random_split
 import musdb
 
-from src.datamodules.datasets.MusdbWrapper import MusdbWrapperDataset, MusdbTrainDataset, MusdbValidationDataset
+from src.datamodules.datasets.Musdb import MusdbDataset
 
 
 class Musdb18hqDataModule(LightningDataModule):
@@ -30,7 +31,7 @@ class Musdb18hqDataModule(LightningDataModule):
     def __init__(
             self,
             data_dir: str,
-            augmentation: bool,
+            aug_params,
             external_datasets,
             target_name: str,
             n_fft: int,
@@ -42,12 +43,15 @@ class Musdb18hqDataModule(LightningDataModule):
             batch_size: int,
             num_workers: int,
             pin_memory: bool,
+            train_split='train',
+            validation_split='valid',
             **kwargs,
     ):
         super().__init__()
 
         self.data_dir = data_dir
-        self.augmentation = augmentation
+        self.train_split, self.validation_split = train_split, validation_split
+        self.aug_params = aug_params
         self.external_datasets = external_datasets
         self.target_name = target_name
 
@@ -62,7 +66,7 @@ class Musdb18hqDataModule(LightningDataModule):
         # derived
         self.n_bins = n_fft // 2 + 1
         self.sampling_size = hop_length * (dim_t - 1)
-        self.trim = n_fft // 2  # trim each generated sub-signal (noise due to conv zero-padding)
+        self.trim = n_fft // 2
 
         self.batch_size = batch_size
         self.num_workers = num_workers
@@ -72,7 +76,8 @@ class Musdb18hqDataModule(LightningDataModule):
         self.data_val: Optional[Dataset] = None
         self.data_test: Optional[Dataset] = None
 
-        if not os.path.exists(self.data_dir + "/valid"):
+        validset_path = join(self.data_dir, self.validation_split)
+        if not exists(validset_path):
             from shutil import move
             root = Path(self.data_dir)
             train_root = root.joinpath('train')
@@ -82,10 +87,8 @@ class Musdb18hqDataModule(LightningDataModule):
             for track in kwargs['validation_set']:
                 if train_root.joinpath(track).exists():
                     move(train_root.joinpath(track), valid_root.joinpath(track))
-
-            print()
         else:
-            valid_files = os.listdir(Path(self.data_dir).joinpath('valid'))
+            valid_files = os.listdir(validset_path)
             assert set(valid_files) == set(kwargs['validation_set'])
 
     @property
@@ -97,17 +100,19 @@ class Musdb18hqDataModule(LightningDataModule):
 
     def setup(self, stage: Optional[str] = None):
         """Load data. Set variables: self.data_train, self.data_val, self.data_test."""
-        self.data_train = MusdbTrainDataset(self.data_dir,
-                                            self.augmentation,
-                                            self.external_datasets,
-                                            self.target_name,
-                                            self.sampling_size)
+        self.data_train = MusdbDataset(self.data_dir,
+                                       self.train_split,
+                                       self.aug_params,
+                                       self.target_name,
+                                       self.sampling_size,
+                                       self.external_datasets)
 
-        self.data_val = MusdbValidationDataset(self.batch_size,
-                                               self.data_dir,
-                                               self.target_name,
-                                               self.sampling_size,
-                                               self.n_fft)
+        self.data_val = MusdbDataset(self.data_dir,
+                                     self.validation_split,
+                                     self.aug_params,
+                                     self.target_name,
+                                     self.sampling_size,
+                                     self.external_datasets)
 
     def train_dataloader(self):
         return DataLoader(
@@ -121,7 +126,7 @@ class Musdb18hqDataModule(LightningDataModule):
     def val_dataloader(self):
         return DataLoader(
             dataset=self.data_val,
-            batch_size=1,
+            batch_size=self.batch_size,
             num_workers=self.num_workers,
             pin_memory=self.pin_memory,
             shuffle=False,

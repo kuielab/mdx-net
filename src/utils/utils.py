@@ -5,6 +5,7 @@ import rich.syntax
 import rich.tree
 import wandb
 import numpy as np
+import torch
 import warnings
 import soundfile as sf
 from typing import List, Sequence
@@ -15,24 +16,18 @@ from pytorch_lightning.utilities import rank_zero_only
 from tests.helpers.run_command import run_command
 
 
-def sdr(ref, est):
-    ratio = np.sum(ref**2) / np.sum((ref-est)**2)
-    return 10*np.log10(ratio)
+def sdr(est, ref):
+    ratio = torch.sum(ref**2) / torch.sum((ref-est)**2)
+    return 10*torch.log10(ratio + 1e-5)
 
 
-def load(path, max_length=None, sampling_size=None):
-    if max_length is None:
+def load_wav(path, track_length=None, chunk_size=None):
+    if track_length is None:
         return sf.read(path, dtype='float32')[0].T
     else:
-        s = np.random.randint(max_length - sampling_size)
-        return sf.read(path, dtype='float32', start=s, frames=sampling_size)[0].T
+        s = np.random.randint(track_length - chunk_size)
+        return sf.read(path, dtype='float32', start=s, frames=chunk_size)[0].T
 
-
-def load_from_start_position(path, start_pos, frame):
-    return sf.read(path, dtype='float32', start=start_pos, frames=frame)[0].T
-
-
-###
 
 def get_logger(name=__name__, level=logging.INFO) -> logging.Logger:
     """Initializes multi-GPU-friendly python logger."""
@@ -88,13 +83,13 @@ def extras(config: DictConfig) -> None:
             config.datamodule.num_workers = 0
 
     # force multi-gpu friendly configuration if <config.trainer.accelerator=ddp>
-    accelerator = config.trainer.get("accelerator")
-    if accelerator in ["ddp", "ddp_spawn", "dp", "ddp2"]:
-        log.info(f"Forcing ddp friendly configuration! <config.trainer.accelerator={accelerator}>")
-        if config.datamodule.get("num_workers"):
-            config.datamodule.num_workers = 0
-        if config.datamodule.get("pin_memory"):
-            config.datamodule.pin_memory = False
+    # accelerator = config.trainer.get("accelerator")
+    # if accelerator in ["ddp", "ddp_spawn", "dp", "ddp2"]:
+    #     log.info(f"Forcing ddp friendly configuration! <config.trainer.accelerator={accelerator}>")
+    #     if config.datamodule.get("num_workers"):
+    #         config.datamodule.num_workers = 0
+    #     if config.datamodule.get("pin_memory"):
+    #         config.datamodule.pin_memory = False
 
     # disable adding new keys to config
     OmegaConf.set_struct(config, True)

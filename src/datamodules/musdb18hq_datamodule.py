@@ -7,7 +7,7 @@ from pytorch_lightning import LightningDataModule
 from torch.utils.data import ConcatDataset, DataLoader, Dataset, random_split
 import musdb
 
-from src.datamodules.datasets.Musdb import MusdbDataset
+from src.datamodules.datasets.Musdb import MusdbDataset, MusdbValidDataset
 
 
 class Musdb18hqDataModule(LightningDataModule):
@@ -104,12 +104,11 @@ class Musdb18hqDataModule(LightningDataModule):
                                        self.sampling_size,
                                        self.external_datasets)
 
-        self.data_val = MusdbDataset(self.data_dir,
-                                     self.validation_split,
-                                     self.aug_params,
-                                     self.target_name,
-                                     self.sampling_size,
-                                     self.external_datasets)
+        self.data_val = MusdbValidDataset(self.data_dir,
+                                          self.target_name,
+                                          self.sampling_size,
+                                          self.trim,
+                                          self.batch_size)
 
     def train_dataloader(self):
         return DataLoader(
@@ -123,16 +122,7 @@ class Musdb18hqDataModule(LightningDataModule):
     def val_dataloader(self):
         return DataLoader(
             dataset=self.data_val,
-            batch_size=self.batch_size,
-            num_workers=self.num_workers,
-            pin_memory=self.pin_memory,
-            shuffle=False,
-        )
-
-    def test_dataloader(self):
-        return DataLoader(
-            dataset=self.data_test,
-            batch_size=self.batch_size,
+            batch_size=1,
             num_workers=self.num_workers,
             pin_memory=self.pin_memory,
             shuffle=False,

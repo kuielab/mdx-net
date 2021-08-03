@@ -9,7 +9,8 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT
 from torch.nn.functional import mse_loss
 
 from src.models.modules import Conv_TDF
-from src.utils.utils import sdr
+from src.utils.utils import sdr, load_wav
+from os import listdir
 
 
 class AbstractMDXNet(LightningModule):
@@ -27,7 +28,7 @@ class AbstractMDXNet(LightningModule):
         self.trim = n_fft // 2
         self.hop_length = hop_length
 
-        self.n_bins = self.n_fft // 2 + 1
+        self.n_bins = n_fft // 2 + 1
         self.sampling_size = hop_length * (self.dim_t - 1)
         self.window = nn.Parameter(torch.hann_window(window_length=self.n_fft, periodic=True), requires_grad=False)
         self.freq_pad = nn.Parameter(torch.zeros([1, dim_c, self.n_bins - self.dim_f, self.dim_t]), requires_grad=False)
@@ -46,20 +47,37 @@ class AbstractMDXNet(LightningModule):
 
         target_wave_hat = self.istft(self(mix_spec))
         loss = mse_loss(target_wave_hat, target_wave)
-        self.log("train/loss", loss, prog_bar=True, sync_dist=True, on_step=True, on_epoch=True)
+        self.log("train/loss", loss, sync_dist=True, on_step=True, on_epoch=True, prog_bar=True)
 
         return {"loss": loss}
 
+    # Validation SDR is calculated on whole tracks and not chunks since
+    # short inputs have high possibility of being silent (all-zero signal)
+    # which leads to very low sdr values regardless of the model.
+    # A natural procedure would be to split a track into chunk batches and
+    # load them on multiple gpus, but aggregation was too difficult.
+    # So instead we load one whole track on a single device (data_loader batch_size should always be 1)
+    # and do all the batch splitting and aggregation on a single device.
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
-        mix_wave, target_wave = args[0]
-        mix_spec = self.stft(mix_wave)
+        mix_chunk_batches, target = args[0]
 
-        target_wave_hat = self.istft(self(mix_spec))
-        loss = sdr(target_wave_hat.detach().cpu().numpy()[..., self.trim:-self.trim],
-                   target_wave.cpu().numpy()[..., self.trim:-self.trim])
-        self.log("val/sdr", loss, logger=True, sync_dist=True, reduce_fx=torch.median, sync_dist_op="median")
+        # remove data_loader batch dimension
+        mix_chunk_batches, target = [batch[0] for batch in mix_chunk_batches], target[0]
 
-        return {'loss': loss}
+        # process whole track in batches of chunks
+        target_hat_chunks = []
+        for batch in mix_chunk_batches:
+            mix_spec = self.stft(batch)
+            target_hat_chunks.append(self.istft(self(mix_spec))[..., self.trim:-self.trim])
+        target_hat_chunks = torch.cat(target_hat_chunks)
+
+        # concat all output chunks
+        target_hat = target_hat_chunks.transpose(0, 1).reshape(2, -1)[:, :target.shape[-1]]
+
+        score = sdr(target_hat.detach().cpu().numpy(), target.cpu().numpy())
+        self.log("val/sdr", score, on_step=False, on_epoch=True, logger=True)
+
+        return {'score': score}
 
     def stft(self, x):
         x = x.reshape([-1, self.sampling_size])

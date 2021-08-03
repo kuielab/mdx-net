@@ -98,3 +98,40 @@ class MusdbDataset(Dataset):
 
     def __len__(self):
         return self.num_iter
+
+
+class MusdbValidDataset(Dataset):
+
+    def __init__(self, data_dir, target_name, sampling_size, trim, batch_size):
+        super(MusdbValidDataset, self).__init__()
+
+        self.source_names = ['bass', 'drums', 'other', 'vocals']
+        self.target_name = target_name
+        check_target_name(self.target_name, self.source_names)
+
+        self.sampling_size = sampling_size
+        self.trim = trim
+        self.batch_size = batch_size
+
+        musdb_valid_path = Path(data_dir).joinpath('valid')
+
+        self.track_paths = [musdb_valid_path.joinpath(track_name)
+                            for track_name in os.listdir(musdb_valid_path)]
+
+    def __getitem__(self, index):
+        mix = load_wav(self.track_paths[index].joinpath('mixture.wav'))
+        target = load_wav(self.track_paths[index].joinpath(self.target_name + '.wav'))
+
+        chunk_output_size = self.sampling_size - 2 * self.trim
+        left_pad = np.zeros([2, self.trim])
+        right_pad = np.zeros([2, chunk_output_size + self.trim - (mix.shape[-1] % chunk_output_size)])
+        mix_padded = np.concatenate([left_pad, mix, right_pad], 1)
+
+        num_chunks = mix_padded.shape[-1] // chunk_output_size
+        mix_chunks = [mix_padded[:, i * chunk_output_size: i * chunk_output_size + self.sampling_size]
+                      for i in range(num_chunks)]
+        mix_chunk_batches = torch.tensor(mix_chunks, dtype=torch.float32).split(self.batch_size)
+        return mix_chunk_batches, torch.from_numpy(target)
+
+    def __len__(self):
+        return len(self.track_paths)

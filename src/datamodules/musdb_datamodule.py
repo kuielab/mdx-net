@@ -42,7 +42,7 @@ class MusdbDataModule(LightningDataModule):
     ):
         super().__init__()
 
-        self.data_dir = data_dir
+        self.data_dir = Path(data_dir)
         self.target_name = target_name
         self.aug_params = aug_params
         self.batch_size = batch_size
@@ -66,9 +66,8 @@ class MusdbDataModule(LightningDataModule):
         self.data_val: Optional[Dataset] = None
         self.data_test: Optional[Dataset] = None
 
-        musdb_path = Path(self.data_dir)
-        trainset_path = musdb_path.joinpath('train')
-        validset_path = musdb_path.joinpath('valid')
+        trainset_path = self.data_dir.joinpath('train')
+        validset_path = self.data_dir.joinpath('valid')
 
         # create validation split
         if not exists(validset_path):
@@ -80,13 +79,6 @@ class MusdbDataModule(LightningDataModule):
         else:
             valid_files = os.listdir(validset_path)
             assert set(valid_files) == set(kwargs['validation_set'])
-
-    @property
-    def num_classes(self) -> int:
-        return 10
-
-    def prepare_data(self):
-        pass
 
     def setup(self, stage: Optional[str] = None):
         """Load data. Set variables: self.data_train, self.data_val, self.data_test."""

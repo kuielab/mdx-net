@@ -36,9 +36,6 @@ class AbstractMDXNet(LightningModule):
         if self.optimizer == 'rmsprop':
             return torch.optim.RMSprop(self.parameters(), self.lr)
 
-    def on_train_start(self) -> None:
-        pass
-
     def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
         mix_wave, target_wave = args[0]
         mix_spec = self.stft(mix_wave)
@@ -176,3 +173,11 @@ class ConvTDFNet(AbstractMDXNet):
         x = self.final_conv(x)
 
         return x
+
+
+# class Mixer(LightningModule):
+#     def __init__(self, lr, optimizer, ):
+#         super().__init__()
+#         self.save_hyperparameters()
+#
+#     def forward(self):

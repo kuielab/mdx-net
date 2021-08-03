@@ -75,9 +75,9 @@ class AbstractMDXNet(LightningModule):
         target_hat = target_hat_chunks.transpose(0, 1).reshape(2, -1)[:, :target.shape[-1]]
 
         score = sdr(target_hat.detach().cpu().numpy(), target.cpu().numpy())
-        self.log("val/sdr", score, on_step=False, on_epoch=True, logger=True)
+        self.log("val/sdr", score, sync_dist=True, on_step=False, on_epoch=True, logger=True)
 
-        return {'score': score}
+        return {'loss': score}
 
     def stft(self, x):
         x = x.reshape([-1, self.sampling_size])

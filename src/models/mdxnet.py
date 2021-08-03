@@ -1,16 +1,14 @@
 from abc import ABCMeta
 from typing import Optional
 
-import numpy as np
 import torch
 import torch.nn as nn
 from pytorch_lightning import LightningModule
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from torch.nn.functional import mse_loss
 
-from src.models.modules import Conv_TDF
-from src.utils.utils import sdr, load_wav
-from os import listdir
+from src.models.modules import TFC_TDF
+from src.utils.utils import sdr
 
 
 class AbstractMDXNet(LightningModule):
@@ -101,7 +99,6 @@ class ConvTDFNet(AbstractMDXNet):
         super(ConvTDFNet, self).__init__(target_name, lr, optimizer, dim_c, dim_f, dim_t, n_fft, hop_length)
         self.save_hyperparameters()
 
-        # Important!: Required!
         self.num_blocks = num_blocks
         self.l = l
         self.g = g
@@ -110,7 +107,7 @@ class ConvTDFNet(AbstractMDXNet):
         self.bias = bias
 
         self.n = num_blocks // 2
-        t_scale = np.arange(self.n)
+        scale = (2, 2)
 
         self.first_conv = nn.Sequential(
             nn.Conv2d(in_channels=self.dim_c, out_channels=g, kernel_size=(1, 1)),
@@ -123,8 +120,7 @@ class ConvTDFNet(AbstractMDXNet):
         self.encoding_blocks = nn.ModuleList()
         self.ds = nn.ModuleList()
         for i in range(self.n):
-            self.encoding_blocks.append(Conv_TDF(c, l, f, k, bn, bias=bias))
-            scale = (2, 2) if i in t_scale else (1, 2)
+            self.encoding_blocks.append(TFC_TDF(c, l, f, k, bn, bias=bias))
             self.ds.append(
                 nn.Sequential(
                     nn.Conv2d(in_channels=c, out_channels=c + g, kernel_size=scale, stride=scale),
@@ -135,12 +131,11 @@ class ConvTDFNet(AbstractMDXNet):
             f = f // 2
             c += g
 
-        self.mid_dense = Conv_TDF(c, l, f, k, bn, bias=bias)
+        self.bottleneck_block = TFC_TDF(c, l, f, k, bn, bias=bias)
 
         self.decoding_blocks = nn.ModuleList()
         self.us = nn.ModuleList()
         for i in range(self.n):
-            scale = (2, 2) if i in self.n - 1 - t_scale else (1, 2)
             self.us.append(
                 nn.Sequential(
                     nn.ConvTranspose2d(in_channels=c, out_channels=c - g, kernel_size=scale, stride=scale),
@@ -151,7 +146,7 @@ class ConvTDFNet(AbstractMDXNet):
             f = f * 2
             c -= g
 
-            self.decoding_blocks.append(Conv_TDF(c, l, f, k, bn, bias=bias))
+            self.decoding_blocks.append(TFC_TDF(c, l, f, k, bn, bias=bias))
 
         self.final_conv = nn.Sequential(
             nn.Conv2d(in_channels=c, out_channels=self.dim_c, kernel_size=(1, 1)),
@@ -169,7 +164,7 @@ class ConvTDFNet(AbstractMDXNet):
             ds_outputs.append(x)
             x = self.ds[i](x)
 
-        x = self.mid_dense(x)
+        x = self.bottleneck_block(x)
 
         for i in range(self.n):
             x = self.us[i](x)

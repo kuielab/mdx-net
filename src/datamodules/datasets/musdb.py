@@ -36,43 +36,45 @@ def check_sample_rate(sr, sample_track):
         exit(-1)
 
 
-#class MusdbDataset(Dataset):
+class MusdbDataset(Dataset):
+    __metaclass__ = ABCMeta
 
-
-class MusdbTrainDataset(Dataset):
-
-    def __init__(self, data_dir, chunk_size, target_name, aug_params):
-        super(MusdbTrainDataset, self).__init__()
-
+    def __init__(self, data_dir, chunk_size):
         self.source_names = ['bass', 'drums', 'other', 'vocals']
+        self.chunk_size = chunk_size
+        self.musdb_path = Path(data_dir)
+
+
+class MusdbTrainDataset(MusdbDataset):
+    def __init__(self, data_dir, chunk_size, target_name, aug_params, use_testset=False):
+        super(MusdbTrainDataset, self).__init__(data_dir, chunk_size)
+
         self.target_name = target_name
         check_target_name(self.target_name, self.source_names)
 
-        self.chunk_size = chunk_size
+        if not self.musdb_path.joinpath('metadata').exists():
+            os.mkdir(self.musdb_path.joinpath('metadata'))
 
-        musdb_path = Path(data_dir)
+        splits = ['train']
+        if use_testset:   # for leaderboard B
+            splits.append('test')
 
-        if not musdb_path.joinpath('metadata').exists():
-            os.mkdir(musdb_path.joinpath('metadata'))
-
-        split = 'train'
-
-        # create lists of paths for datasets and metadata (track names and duration)
-        dataset_names = [musdb_path.joinpath(split)]
-        metadata_caches = [musdb_path.joinpath('metadata').joinpath(split+'.pkl')]
-        max_pitch, max_tempo = aug_params
-        for p in range(-max_pitch, max_pitch+1):
-            for t in range(-max_tempo, max_tempo+1, 10):
-                if (p, t) == (0, 0):  # no aug
-                    pass
-                else:
-                    aug_split = split + f'_p={p}_t={t}'
-                    dataset_names.append(musdb_path.joinpath(aug_split))
-                    metadata_caches.append(musdb_path.joinpath('metadata').joinpath(aug_split + '.pkl'))
+        # collect paths for datasets and metadata (track names and duration)
+        datasets, metadata_caches = [], []
+        raw_datasets = []    # un-augmented datasets
+        for split in splits:
+            raw_datasets.append(self.musdb_path.joinpath(split))
+            max_pitch, max_tempo = aug_params
+            for p in range(-max_pitch, max_pitch+1):
+                for t in range(-max_tempo, max_tempo+1, 10):
+                    aug_split = split if p==t==0 else split + f'_p={p}_t={t}'
+                    datasets.append(self.musdb_path.joinpath(aug_split))
+                    metadata_caches.append(self.musdb_path.joinpath('metadata').joinpath(aug_split + '.pkl'))
 
         # collect all track names and their duration
         self.metadata = []
-        for i, (dataset, metadata_cache) in enumerate(tqdm(zip(dataset_names, metadata_caches))):
+        raw_track_lengths = []   # for calculating epoch size
+        for i, (dataset, metadata_cache) in enumerate(tqdm(zip(datasets, metadata_caches))):
             try:
                 metadata = torch.load(metadata_cache)
             except FileNotFoundError:
@@ -85,16 +87,16 @@ class MusdbTrainDataset(Dataset):
                 torch.save(metadata, metadata_cache)
 
             self.metadata += metadata
+            if dataset in raw_datasets:
+                raw_track_lengths += [length for path, length in metadata]
 
-            if i == 0:  # get epoch size
-                lengths = [length for path, length in self.metadata]
-                self.num_iter = sum(lengths) // self.chunk_size + 1
+        self.epoch_size = sum(raw_track_lengths) // self.chunk_size
 
     def __getitem__(self, _):
         sources = []
-        for s_name in self.source_names:
+        for source_name in self.source_names:
             track_path, track_length = random.choice(self.metadata)   # random mixing between tracks
-            source = load_wav(track_path.joinpath(s_name + '.wav'),
+            source = load_wav(track_path.joinpath(source_name + '.wav'),
                               track_length=track_length, chunk_size=self.chunk_size)
             sources.append(source)
         mix = sum(sources)
@@ -102,24 +104,21 @@ class MusdbTrainDataset(Dataset):
         return torch.from_numpy(mix), torch.from_numpy(target)
 
     def __len__(self):
-        return self.num_iter
+        return self.epoch_size
 
 
-class MusdbValidDataset(Dataset):
+class MusdbValidDataset(MusdbDataset):
 
-    def __init__(self, data_dir, target_name, chunk_size, overlap, batch_size):
-        super(MusdbValidDataset, self).__init__()
+    def __init__(self, data_dir, chunk_size, target_name, overlap, batch_size):
+        super(MusdbValidDataset, self).__init__(data_dir, chunk_size)
 
-        self.source_names = ['bass', 'drums', 'other', 'vocals']
         self.target_name = target_name
         check_target_name(self.target_name, self.source_names)
 
-        self.chunk_size = chunk_size
         self.overlap = overlap
         self.batch_size = batch_size
 
-        musdb_valid_path = Path(data_dir).joinpath('valid')
-
+        musdb_valid_path = self.musdb_path.joinpath('valid')
         self.track_paths = [musdb_valid_path.joinpath(track_name)
                             for track_name in os.listdir(musdb_valid_path)]
 
@@ -129,7 +128,7 @@ class MusdbValidDataset(Dataset):
 
         chunk_output_size = self.chunk_size - 2 * self.overlap
         left_pad = np.zeros([2, self.overlap])
-        right_pad = np.zeros([2, chunk_output_size + self.overlap - (mix.shape[-1] % chunk_output_size)])
+        right_pad = np.zeros([2, self.overlap + chunk_output_size - (mix.shape[-1] % chunk_output_size)])
         mix_padded = np.concatenate([left_pad, mix, right_pad], 1)
 
         num_chunks = mix_padded.shape[-1] // chunk_output_size

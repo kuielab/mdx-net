@@ -5,12 +5,11 @@ from typing import Optional, Tuple
 
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import ConcatDataset, DataLoader, Dataset, random_split
-import musdb
 
-from src.datamodules.datasets.Musdb import MusdbTrainDataset, MusdbValidDataset
+from src.datamodules.datasets.musdb import MusdbTrainDataset, MusdbValidDataset
 
 
-class Musdb18hqDataModule(LightningDataModule):
+class MusdbDataModule(LightningDataModule):
     """
     LightningDataModule for Musdb18-HQ dataset.
     A DataModule implements 5 key methods:
@@ -39,14 +38,11 @@ class Musdb18hqDataModule(LightningDataModule):
             batch_size: int,
             num_workers: int,
             pin_memory: bool,
-            train_split='train',
-            validation_split='valid',
             **kwargs,
     ):
         super().__init__()
 
         self.data_dir = data_dir
-        self.train_split, self.validation_split = train_split, validation_split
         self.target_name = target_name
         self.aug_params = aug_params
         self.batch_size = batch_size
@@ -70,17 +66,17 @@ class Musdb18hqDataModule(LightningDataModule):
         self.data_val: Optional[Dataset] = None
         self.data_test: Optional[Dataset] = None
 
-        validset_path = join(self.data_dir, self.validation_split)
+        musdb_path = Path(self.data_dir)
+        trainset_path = musdb_path.joinpath('train')
+        validset_path = musdb_path.joinpath('valid')
+
+        # create validation split
         if not exists(validset_path):
             from shutil import move
-            root = Path(self.data_dir)
-            train_root = root.joinpath('train')
-            valid_root = root.joinpath('valid')
-            os.mkdir(valid_root)
-
+            os.mkdir(validset_path)
             for track in kwargs['validation_set']:
-                if train_root.joinpath(track).exists():
-                    move(train_root.joinpath(track), valid_root.joinpath(track))
+                if trainset_path.joinpath(track).exists():
+                    move(trainset_path.joinpath(track), validset_path.joinpath(track))
         else:
             valid_files = os.listdir(validset_path)
             assert set(valid_files) == set(kwargs['validation_set'])
@@ -95,13 +91,13 @@ class Musdb18hqDataModule(LightningDataModule):
     def setup(self, stage: Optional[str] = None):
         """Load data. Set variables: self.data_train, self.data_val, self.data_test."""
         self.data_train = MusdbTrainDataset(self.data_dir,
-                                            self.target_name,
                                             self.chunk_size,
+                                            self.target_name,
                                             self.aug_params)
 
         self.data_val = MusdbValidDataset(self.data_dir,
-                                          self.target_name,
                                           self.chunk_size,
+                                          self.target_name,
                                           self.overlap,
                                           self.batch_size)
 

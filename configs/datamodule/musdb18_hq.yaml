@@ -1,7 +1,7 @@
-_target_: src.datamodules.musdb18hq_datamodule.Musdb18hqDataModule
+_target_: src.datamodules.musdb_datamodule.MusdbDataModule
 
 data_dir: ${data_dir} # data_dir is specified in config.yaml
-sampling_rate: 44100
+sample_rate: 44100
 
 source_names:
   - bass

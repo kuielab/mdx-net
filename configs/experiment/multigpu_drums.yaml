@@ -13,11 +13,11 @@ logger:
     name: 'n9l3g32'
 
 trainer:
-  gpus: '2,3'
+  gpus: '2'
   check_val_every_n_epoch: 10
 
 datamodule:
-  batch_size: 8
+  batch_size: 2
   num_workers: 8
   pin_memory: False
 

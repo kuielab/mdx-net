@@ -7,7 +7,7 @@ from pytorch_lightning import LightningDataModule
 from torch.utils.data import ConcatDataset, DataLoader, Dataset, random_split
 import musdb
 
-from src.datamodules.datasets.Musdb import MusdbDataset, MusdbValidDataset
+from src.datamodules.datasets.Musdb import MusdbTrainDataset, MusdbValidDataset
 
 
 class Musdb18hqDataModule(LightningDataModule):
@@ -29,14 +29,13 @@ class Musdb18hqDataModule(LightningDataModule):
             self,
             data_dir: str,
             aug_params,
-            external_datasets,
             target_name: str,
             n_fft: int,
             hop_length: int,
             dim_c: int,
             dim_f: int,
             dim_t: int,
-            sampling_rate: int,
+            sample_rate: int,
             batch_size: int,
             num_workers: int,
             pin_memory: bool,
@@ -48,9 +47,11 @@ class Musdb18hqDataModule(LightningDataModule):
 
         self.data_dir = data_dir
         self.train_split, self.validation_split = train_split, validation_split
-        self.aug_params = aug_params
-        self.external_datasets = external_datasets
         self.target_name = target_name
+        self.aug_params = aug_params
+        self.batch_size = batch_size
+        self.num_workers = num_workers
+        self.pin_memory = pin_memory
 
         # audio-related
         self.n_fft = n_fft
@@ -58,16 +59,12 @@ class Musdb18hqDataModule(LightningDataModule):
         self.dim_c = dim_c
         self.dim_f = dim_f
         self.dim_t = dim_t
-        self.sampling_rate = sampling_rate
+        self.sample_rate = sample_rate
 
         # derived
         self.n_bins = n_fft // 2 + 1
-        self.sampling_size = hop_length * (dim_t - 1)
-        self.trim = n_fft // 2
-
-        self.batch_size = batch_size
-        self.num_workers = num_workers
-        self.pin_memory = pin_memory
+        self.chunk_size = hop_length * (dim_t - 1)
+        self.overlap = n_fft // 2
 
         self.data_train: Optional[Dataset] = None
         self.data_val: Optional[Dataset] = None
@@ -97,17 +94,15 @@ class Musdb18hqDataModule(LightningDataModule):
 
     def setup(self, stage: Optional[str] = None):
         """Load data. Set variables: self.data_train, self.data_val, self.data_test."""
-        self.data_train = MusdbDataset(self.data_dir,
-                                       self.train_split,
-                                       self.aug_params,
-                                       self.target_name,
-                                       self.sampling_size,
-                                       self.external_datasets)
+        self.data_train = MusdbTrainDataset(self.data_dir,
+                                            self.target_name,
+                                            self.chunk_size,
+                                            self.aug_params)
 
         self.data_val = MusdbValidDataset(self.data_dir,
                                           self.target_name,
-                                          self.sampling_size,
-                                          self.trim,
+                                          self.chunk_size,
+                                          self.overlap,
                                           self.batch_size)
 
     def train_dataloader(self):

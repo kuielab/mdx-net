@@ -14,6 +14,7 @@ logger:
 
 trainer:
   gpus: '2,3'
+  check_val_every_n_epoch: 10
 
 datamodule:
   batch_size: 8

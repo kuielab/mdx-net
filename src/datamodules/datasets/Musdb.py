@@ -25,32 +25,37 @@ def check_target_name(target_name, source_names):
         exit(-1)
 
 
-def check_sampling_rate(sr, sample_track):
+def check_sample_rate(sr, sample_track):
     try:
-        sampling_rate = soundfile.read(sample_track)[1]
-        assert sampling_rate == sr
+        sample_rate = soundfile.read(sample_track)[1]
+        assert sample_rate == sr
     except AssertionError:
-        sampling_rate = soundfile.read(sample_track)[1]
+        sample_rate = soundfile.read(sample_track)[1]
         print('[ERROR] sampling rate mismatched')
-        print('\t=> sr in Config file: {}, but sr of data: {}'.format(sr, sampling_rate))
+        print('\t=> sr in Config file: {}, but sr of data: {}'.format(sr, sample_rate))
         exit(-1)
 
 
-class MusdbDataset(Dataset):
+#class MusdbDataset(Dataset):
 
-    def __init__(self, data_dir, split, aug_params, target_name, sampling_size, external_datasets):
-        super(MusdbDataset, self).__init__()
+
+class MusdbTrainDataset(Dataset):
+
+    def __init__(self, data_dir, chunk_size, target_name, aug_params):
+        super(MusdbTrainDataset, self).__init__()
 
         self.source_names = ['bass', 'drums', 'other', 'vocals']
         self.target_name = target_name
         check_target_name(self.target_name, self.source_names)
 
-        self.sampling_size = sampling_size
+        self.chunk_size = chunk_size
 
         musdb_path = Path(data_dir)
 
         if not musdb_path.joinpath('metadata').exists():
             os.mkdir(musdb_path.joinpath('metadata'))
+
+        split = 'train'
 
         # create lists of paths for datasets and metadata (track names and duration)
         dataset_names = [musdb_path.joinpath(split)]
@@ -83,14 +88,14 @@ class MusdbDataset(Dataset):
 
             if i == 0:  # get epoch size
                 lengths = [length for path, length in self.metadata]
-                self.num_iter = sum(lengths) // self.sampling_size + 1
+                self.num_iter = sum(lengths) // self.chunk_size + 1
 
     def __getitem__(self, _):
         sources = []
         for s_name in self.source_names:
             track_path, track_length = random.choice(self.metadata)   # random mixing between tracks
             source = load_wav(track_path.joinpath(s_name + '.wav'),
-                              track_length=track_length, chunk_size=self.sampling_size)
+                              track_length=track_length, chunk_size=self.chunk_size)
             sources.append(source)
         mix = sum(sources)
         target = sources[self.source_names.index(self.target_name)]
@@ -102,15 +107,15 @@ class MusdbDataset(Dataset):
 
 class MusdbValidDataset(Dataset):
 
-    def __init__(self, data_dir, target_name, sampling_size, trim, batch_size):
+    def __init__(self, data_dir, target_name, chunk_size, overlap, batch_size):
         super(MusdbValidDataset, self).__init__()
 
         self.source_names = ['bass', 'drums', 'other', 'vocals']
         self.target_name = target_name
         check_target_name(self.target_name, self.source_names)
 
-        self.sampling_size = sampling_size
-        self.trim = trim
+        self.chunk_size = chunk_size
+        self.overlap = overlap
         self.batch_size = batch_size
 
         musdb_valid_path = Path(data_dir).joinpath('valid')
@@ -122,13 +127,13 @@ class MusdbValidDataset(Dataset):
         mix = load_wav(self.track_paths[index].joinpath('mixture.wav'))
         target = load_wav(self.track_paths[index].joinpath(self.target_name + '.wav'))
 
-        chunk_output_size = self.sampling_size - 2 * self.trim
-        left_pad = np.zeros([2, self.trim])
-        right_pad = np.zeros([2, chunk_output_size + self.trim - (mix.shape[-1] % chunk_output_size)])
+        chunk_output_size = self.chunk_size - 2 * self.overlap
+        left_pad = np.zeros([2, self.overlap])
+        right_pad = np.zeros([2, chunk_output_size + self.overlap - (mix.shape[-1] % chunk_output_size)])
         mix_padded = np.concatenate([left_pad, mix, right_pad], 1)
 
         num_chunks = mix_padded.shape[-1] // chunk_output_size
-        mix_chunks = [mix_padded[:, i * chunk_output_size: i * chunk_output_size + self.sampling_size]
+        mix_chunks = [mix_padded[:, i * chunk_output_size: i * chunk_output_size + self.chunk_size]
                       for i in range(num_chunks)]
         mix_chunk_batches = torch.tensor(mix_chunks, dtype=torch.float32).split(self.batch_size)
         return mix_chunk_batches, torch.from_numpy(target)

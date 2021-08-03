@@ -2,17 +2,17 @@
 
 # specify here default training configuration
 defaults:
-  - model: ConvTDFNet_drums
+  - model: ConvTDFNet_other
   - logger: wandb.yaml
   # enable color logging
   - override hydra/hydra_logging: colorlog
   - override hydra/job_logging: colorlog
 
-ckpt_path: 'drums/2021-08-02/02-34-12/checkpoints/epoch=169.ckpt'
+ckpt_path: 'other/2021-08-02/23-12-31/checkpoints/epoch=339.ckpt'
 
 split: 'valid'
-batch_size: 8
-device: 'cuda:3'
+batch_size: 4
+device: 'cuda:2'
 
 data_dir: ${oc.env:data_dir}
 ckpt_dir: ${oc.env:ckpt_dir}

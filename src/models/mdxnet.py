@@ -25,14 +25,14 @@ class AbstractMDXNet(LightningModule):
         self.dim_f = dim_f
         self.dim_t = dim_t
         self.n_fft = n_fft
-        self.trim = n_fft // 2
+        self.n_bins = n_fft // 2 + 1
         self.hop_length = hop_length
 
-        self.n_bins = n_fft // 2 + 1
-        self.sampling_size = hop_length * (self.dim_t - 1)
+        self.chunk_size = hop_length * (self.dim_t - 1)
+        self.overlap = n_fft // 2
         self.window = nn.Parameter(torch.hann_window(window_length=self.n_fft, periodic=True), requires_grad=False)
         self.freq_pad = nn.Parameter(torch.zeros([1, dim_c, self.n_bins - self.dim_f, self.dim_t]), requires_grad=False)
-        self.input_sample_shape = (self.stft(torch.zeros([1, 2, self.sampling_size]))).shape
+        self.input_sample_shape = (self.stft(torch.zeros([1, 2, self.chunk_size]))).shape
 
     def configure_optimizers(self):
         if self.optimizer == 'rmsprop':
@@ -68,7 +68,7 @@ class AbstractMDXNet(LightningModule):
         target_hat_chunks = []
         for batch in mix_chunk_batches:
             mix_spec = self.stft(batch)
-            target_hat_chunks.append(self.istft(self(mix_spec))[..., self.trim:-self.trim])
+            target_hat_chunks.append(self.istft(self(mix_spec))[..., self.overlap:-self.overlap])
         target_hat_chunks = torch.cat(target_hat_chunks)
 
         # concat all output chunks
@@ -80,7 +80,7 @@ class AbstractMDXNet(LightningModule):
         return {'loss': score}
 
     def stft(self, x):
-        x = x.reshape([-1, self.sampling_size])
+        x = x.reshape([-1, self.chunk_size])
         x = torch.stft(x, n_fft=self.n_fft, hop_length=self.hop_length, window=self.window, center=True)
         x = x.permute([0, 3, 1, 2])
         x = x.reshape([-1, 2, 2, self.n_bins, self.dim_t]).reshape([-1, self.dim_c, self.n_bins, self.dim_t])
@@ -91,7 +91,7 @@ class AbstractMDXNet(LightningModule):
         spec = spec.reshape([-1, 2, 2, self.n_bins, self.dim_t]).reshape([-1, 2, self.n_bins, self.dim_t])
         spec = spec.permute([0, 2, 3, 1])
         spec = torch.istft(spec, n_fft=self.n_fft, hop_length=self.hop_length, window=self.window, center=True)
-        return spec.reshape([-1, 2, self.sampling_size])
+        return spec.reshape([-1, 2, self.chunk_size])
 
 
 class ConvTDFNet(AbstractMDXNet):

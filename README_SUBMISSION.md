@@ -56,7 +56,10 @@
 
 ## How to reproduce the submission
 
-Please describe here how your submission can be reproduced.
+[Leaderboard A](https://gitlab.aicrowd.com/kim_min_seok/demix/tree/submission133)
+
+[Leaderboard B](https://gitlab.aicrowd.com/kim_min_seok/demix/tree/submission106)
+
 
 ## How to reproduce the training
 

@@ -3,6 +3,7 @@ from typing import Optional
 
 import torch
 import torch.nn as nn
+from omegaconf import OmegaConf
 from pytorch_lightning import LightningModule
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from torch.nn.functional import mse_loss
@@ -175,9 +176,71 @@ class ConvTDFNet(AbstractMDXNet):
         return x
 
 
-# class Mixer(LightningModule):
-#     def __init__(self, lr, optimizer, ):
-#         super().__init__()
-#         self.save_hyperparameters()
-#
-#     def forward(self):
+class Mixer(LightningModule):
+    def __init__(self, model_cfg_dir, separator_configs, lr, optimizer, dim_t, hop_length, target_name='all'):
+        super().__init__()
+        self.save_hyperparameters()
+
+        self.separators = []
+        for cfg in separator_configs:
+            model_config = OmegaConf.load(model_cfg_dir + cfg)
+            assert 'ConvTDFNet' in model_config._target_
+            separator = ConvTDFNet(**{key: model_config[key] for key in dict(model_config) if key !='_target_'})
+            self.separators.append(separator)
+
+        self.lr = lr
+        self.optimizer = optimizer
+
+        self.chunk_size = hop_length * (dim_t - 1)
+        self.dim_s = len(separator_configs)
+
+        self.mixing_layer = nn.Linear((self.dim_s+1) * 2, self.dim_s * 2, bias=False)
+
+    def configure_optimizers(self):
+        if self.optimizer == 'rmsprop':
+            return torch.optim.RMSprop(self.parameters(), self.lr)
+
+    def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
+        mix_wave, target_waves = args[0]
+
+        with torch.no_grad():
+            target_wave_hats = []
+            for S in self.separators:
+                target_wave_hat = S.istft(S(S.stft(mix_wave)))
+                target_wave_hats.append(target_wave_hat)  # shape = [source, batch, channel, time]
+
+            target_wave_hats = torch.stack(target_wave_hats).transpose(0, 1)
+
+        mixer_output = self(torch.cat([target_wave_hats, mix_wave.unsqueeze(1)], 1))
+
+        loss = mse_loss(mixer_output, target_waves)
+        self.log("train/loss", loss, sync_dist=True, on_step=True, on_epoch=True, prog_bar=True)
+
+        return {"loss": loss}
+
+    # data_loader batch_size should always be 1
+    def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        mix_chunk_batches, target = args[0]
+
+        # remove data_loader batch dimension
+        mix_chunk_batches, target = [batch[0] for batch in mix_chunk_batches], target[0]
+
+        # process whole track in batches of chunks
+        target_hat_chunks = []
+        for batch in mix_chunk_batches:
+            mix_spec = self.stft(batch)
+            target_hat_chunks.append(self.istft(self(mix_spec))[..., self.overlap:-self.overlap])
+        target_hat_chunks = torch.cat(target_hat_chunks)
+
+        # concat all output chunks
+        target_hat = target_hat_chunks.transpose(0, 1).reshape(2, -1)[:, :target.shape[-1]]
+
+        score = sdr(target_hat.detach().cpu().numpy(), target.cpu().numpy())
+        self.log("val/sdr", score, sync_dist=True, on_step=False, on_epoch=True, logger=True)
+
+        return {'loss': score}
+
+    def forward(self, x):
+        x = x.reshape(-1, (self.dim_s + 1) * 2, self.chunk_size).transpose(-1, -2)
+        x = self.mixing_layer(x)
+        return x.transpose(-1, -2).reshape(-1, self.dim_s, 2, self.chunk_size)

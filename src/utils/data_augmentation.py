@@ -7,7 +7,6 @@ import warnings
 import numpy as np
 import soundfile as sf
 import torch
-import wavfile
 from tqdm import tqdm
 
 warnings.simplefilter(action='ignore', category=Warning)

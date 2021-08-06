@@ -1,11 +1,16 @@
 # KUIELab-MDX-Net
 
-## Installation!
+## 1. Installation
+
+```bash
 conda env create -f conda_env_gpu.yaml -n mdx-net
 conda activate mdx-net
-
-# install requirements
 pip install -r requirements.txt
+```
+
+## 2. Training & Submission
+
+see [README_SUBMISSION.md](README_SUBMISSION.md)
 
 # ACKNOWLEDGEMENT
 

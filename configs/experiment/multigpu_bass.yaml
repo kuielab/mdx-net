@@ -21,6 +21,3 @@ datamodule:
   pin_memory: False
   overlap: 8192
 
-callbacks:
-  early_stopping:
-    patience: 500

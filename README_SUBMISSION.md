@@ -4,7 +4,7 @@
 
 * Submission ID: 151249
 * Submitter: kim_min_seok
-* Final rank: 3nd place on leaderboard A
+* Final rank: 3rd place on leaderboard B
 * Final scores on MDXDB21:
 
 
@@ -16,7 +16,7 @@
 ## Model Summary
 
 * Data
-  * We used 136 tracks from MusDB (train 86 + test 50) and default 14 track validation split.
+  * We used the MusDB default 14 track validation set for validation, and the other 136 tracks for training.
   * Augmentation
     * Random chunking and mixing sources from different tracks ([1])
     * Pitch shift and time stretch ([2])

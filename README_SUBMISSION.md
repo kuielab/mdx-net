@@ -63,7 +63,7 @@
 
 ## How to reproduce the submission
 
-***Note***: The inference time is very close to the time limit, so submission will randomly fail. You might have to submit it several times ().
+***Note***: The inference time is very close to the time limit, so submission will randomly fail. You might have to submit it several times.
 
 - obtain ```.onnx``` files and ```.pt``` file as described in the [following section](#how-to-reproduce-the-training)
 - follow this instruction to deploy parameters
@@ -88,8 +88,8 @@
 
 ### 1. Data Preparation
 
-Data Augmentation [2]
-- This could have been done on-the-fly along with chunking and mixing ([1]), but we preferred fast processing time over less disk usage. The following scripts are for saving augmented tracks to disk before training. 
+Pitch Shift and Time Stretch [2]
+- This could have been done on-the-fly along with chunking and mixing ([1]), but we preferred faster train steps over less disk usage. The following scripts are for saving augmented tracks to disk before training. 
 
 - For Leaderboard A
     - run ```python src/utils/data_augmentation.py --data_dir ${your_musdb_path} --train True --valid False --test False```
@@ -104,43 +104,35 @@ Data Augmentation [2]
   - bass: ```python run.py experiment=multigpu_bass model=ConvTDFNet_bass```
   - other: ```python run.py experiment=multigpu_other model=ConvTDFNet_other```
 
-- for training, each takes at least 3 days, usually 4~5 days with four ```-2080ti-s```.
-  - this model directly estimates the target complex-valued spectrogram
-  - We empirically found that model based on this type of estimation method
-    - even if its validation loss converges, its SDR performance can be improved further
-    - thus, we did not use a strict earlystopping [threshold]()
+- For training, each takes at least 3 days, usually 4~5 days to early-stop for the current configurations. 
   
 - Default logging system is [wandb](https://www.wandb.com/)
   ![](val_loss_vocals.png)  
   
-- checkpoint result saving callbacks
-  - we use [onnx](https://onnx.ai/) for faster inference to meet the time limit
+- Checkpoint result saving callbacks
+  - We use [onnx](https://onnx.ai/) for faster inference to meet the time limit
     - see the [related issue](https://github.com/ws-choi/Conditioned-Source-Separation-LaSAFT/issues/20#issuecomment-840407759)
-  - you don't have to manually convert ```.onnx``` file.
-  - our code automatically generates a corresponding ```.onnx``` whenever a new checkpoint is saved by [checkpoint callback](https://github.com/kuielab/mdx-net/blob/7c6f7daecde13c0e8ed97f308577f6690b0c31af/configs/callbacks/default.yaml#L2)  
+  - You don't have to manually convert ```.onnx``` files. Our code automatically generates ```.onnx``` whenever a new checkpoint is saved by [checkpoint callback](https://github.com/kuielab/mdx-net/blob/7c6f7daecde13c0e8ed97f308577f6690b0c31af/configs/callbacks/default.yaml#L2)  
     ![](onnx_callback.png)
-  - this function was implemented as a callback function
+  - This function was implemented as a callback function
     - see [this](https://github.com/kuielab/mdx-net/blob/7c6f7daecde13c0e8ed97f308577f6690b0c31af/configs/callbacks/default.yaml#L18)
     - and [this](https://github.com/kuielab/mdx-net/blob/7c6f7daecde13c0e8ed97f308577f6690b0c31af/src/callbacks/onnx_callback.py#L11)
 
 #### The epoch of each checkpoint we used  
 - Leaderboard A
-    - vocals: 1400 epoch
-    - bass: 1300 epoch
-    - drums: 300 epoch
-    - other: 900 epoch
-    - note: but if we keep training then the SDRs usually goes higher
+    - vocals: 2360 epoch
+    - bass: 1720 epoch
+    - drums: 600 epoch
+    - other: 1720 epoch
 
 - Leaderboard B
     - vocals: 1960 epoch
-    - bass: 1720 epoch
+    - bass: 1200 epoch
     - drums: 940 epoch
     - other: 1660 epoch
-    - note: but if we keep training then the SDRs usually goes higher
+    - note: the models were submitted before convergence, and the learning rate might have not been optimal as well (ex. for 'other', Leaderboard A score is higher)
 
 ### 3. Phase 2 (Optional)
-
-This phase can improve the SDR (but not significantly).
 
 This phase **does not fine-tune** the pretrained separators from the previous phase.
 

@@ -11,7 +11,7 @@ Also, you ***must*** create .env file by copying .env.sample to set environmenta
 
 ```
 wandb_api_key=[Your Key] # "xxxxxxxxxxxxxxxxxxxxxxxx"
-data_dir=[Your Path] # "/home/kuielab/lg_dacon_data_dir"
+data_dir=[Your Path] # "/home/ielab/repos/musdbHQ"
 ```
 
 - about ```wandb_api_key```

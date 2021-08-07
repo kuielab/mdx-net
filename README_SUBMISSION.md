@@ -2,9 +2,20 @@
 
 ## Submission Summary
 
+### Leaderboard A
 * Submission ID: 151907
 * Submitter: kim_min_seok
 * Final rank: 2nd place on leaderboard A
+* Final scores on MDXDB21:
+
+  | SDR_song | SDR_bass | SDR_drums | SDR_other | SDR_vocals |
+  | :------: | :------: | :-------: | :-------: | :--------: |
+  |   7.37   |   7.50   |   7.55    |   5.53    |    8.90    |
+
+### Leaderboard B
+* Submission ID: 151249
+* Submitter: kim_min_seok
+* Final rank: 3nd place on leaderboard A
 * Final scores on MDXDB21:
 
   | SDR_song | SDR_bass | SDR_drums | SDR_other | SDR_vocals |

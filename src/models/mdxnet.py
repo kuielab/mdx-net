@@ -47,13 +47,7 @@ class AbstractMDXNet(LightningModule):
 
         return {"loss": loss}
 
-    # Validation SDR is calculated on whole tracks and not chunks since
-    # short inputs have high possibility of being silent (all-zero signal)
-    # which leads to very low sdr values regardless of the model.
-    # A natural procedure would be to split a track into chunk batches and
-    # load them on multiple gpus, but aggregation was too difficult.
-    # So instead we load one whole track on a single device (data_loader batch_size should always be 1)
-    # and do all the batch splitting and aggregation on a single device.
+
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
         mix_chunk_batches, target = args[0]
 
@@ -188,12 +182,17 @@ class Mixer(LightningModule):
             separator = ConvTDFNet(**{key: model_config[key] for key in dict(model_config) if key !='_target_'})
             self.separators.append(separator)
 
+        # Freeze
+        for sep in self.separators:
+            with torch.no_grad():
+                for param in sep.parameters():
+                    param.requires_grad = False
+
         self.lr = lr
         self.optimizer = optimizer
 
         self.chunk_size = hop_length * (dim_t - 1)
         self.dim_s = len(separator_configs)
-
         self.mixing_layer = nn.Linear((self.dim_s+1) * 2, self.dim_s * 2, bias=False)
 
     def configure_optimizers(self):

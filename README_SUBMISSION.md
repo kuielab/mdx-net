@@ -36,7 +36,7 @@
     * Random chunking and mixing sources from different tracks ([1])
     * Pitch shift and time stretch ([2])
 * Model
-  * Blend[1] of two models: TFC-TDF[3] and Demucs[4] 
+  * Blend[1] of two models: lightweight TFC-TDF[3] and Demucs[4] 
   * TFC-TDF 
     * Models were trained separately for each source.
     * The input [frequency, time] dimensions are fixed to [2048, 256] for all sources 
@@ -79,12 +79,12 @@
 ### 1. Data Preparation
 
 1. Data Augmentation [2]
-   - run ```src/utils/data_augmentation.py```
+  - run ```src/utils/data_augmentation.py```
 
 2. (for Leaderboard B only)
   - training with test dataset as well
 
-### 2. Phase 1.
+### 2. Phase 1
 
 - Train ```src.models.mdxnet.ConvTDFNet``` for each source.
   - vocals: ```python run.py experiment=multigpu_vocals model=ConvTDFNet_vocals```
@@ -92,13 +92,35 @@
   - bass: ```python run.py experiment=multigpu_bass```
   - other: ```python run.py experiment=multigpu_other model=ConvTDFNet_other```
 
-- for training, each takes at least 3 days.
+- for training, each takes at least 3 days, usually 4~5 days.
+  - this model directly estimates the target complex-valued spectrogram
+  - We empirically found that model based on this type of estimation method
+    - even if its validation loss converges, its SDR performance can be improved further
+    - thus, we did not use strict earlystopping threshold
+  
+- Default logging system is [wandb](https://www.wandb.com/)
+  ![](val_loss_vocals.png)  
+  
+- checkpoint result saving callbacks
+  - we use [onnx](https://onnx.ai/) for faster inference to meet the time limit
+    - see the [related issue](https://github.com/ws-choi/Conditioned-Source-Separation-LaSAFT/issues/20#issuecomment-840407759)
+  - you don't have to manually convert ```.onnx``` file.
+  - our code automatically generates a corresponding ```.onnx``` whenever a new checkpoint is saved by [checkpoint callback](https://github.com/kuielab/mdx-net/blob/7c6f7daecde13c0e8ed97f308577f6690b0c31af/configs/callbacks/default.yaml#L2)  
+    ![](onnx_callback.png)
+  - this function was implemented as a callback function
+    - see [this](https://github.com/kuielab/mdx-net/blob/7c6f7daecde13c0e8ed97f308577f6690b0c31af/configs/callbacks/default.yaml#L18)
+    - and [this](https://github.com/kuielab/mdx-net/blob/7c6f7daecde13c0e8ed97f308577f6690b0c31af/src/callbacks/onnx_callback.py#L11)
+  
+### 3. Phase 2 (Optional)
 
-### 3. Phase 2
+This phase can improve the SDR (but not significantly).
+
+This phase **does not fine-tune** the pretrained separators from the previous phase.
 
 - Train Mixer
   - locate candidate checkpoints by appending ```ckpt``` variable in the ```yaml``` config file.
   - train ```from src.models.mdxnet Mixer ```
+  - save ```.pt```, the only learnable parameters in ```Mixer```
 
 
 # License

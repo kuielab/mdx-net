@@ -72,6 +72,15 @@
 ***Note***: I don't know why but submission might be failed randomly due to the time limit. you might have to submit it several times.
 
 - obtain ```.onnx``` files and ```.pt``` file as described in the [following section](#how-to-reproduce-the-training)
+- follow this instruction to deploy parameters
+    ```
+    git clone https://github.com/kuielab/mdx-net-submission.git
+    cd mdx-net-submission
+    git checkout leaderboard_A
+    git lfs install
+    mv ${*.onnx} onnx/
+    mv ${*.pt} model/  
+    ```
 - or visit the following links that hold the pretrained ```.onnx``` files and ```.pt``` file
   - [Leaderboard A](https://github.com/kuielab/mdx-net-submission/tree/leaderboard_A)
   - [Leaderboard B]()

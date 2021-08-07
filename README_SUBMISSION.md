@@ -86,7 +86,8 @@
 ### 1. Data Preparation
 
 1. Data Augmentation [2]
-  - run ```python src/utils/data_augmentation.py```
+  - run ```python src/utils/data_augmentation.py --data_dir ${your_musdb_path} --train True --valid False --test False``` for Leaderboard A
+  - run ```python src/utils/data_augmentation.py --data_dir ${your_musdb_path} --train True --valid True --test True``` for Leaderboard B  
 
 2. (for Leaderboard B only)
   - training with test dataset as well

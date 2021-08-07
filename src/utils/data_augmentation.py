@@ -2,6 +2,7 @@ import os
 import subprocess as sp
 import tempfile
 import warnings
+from argparse import ArgumentParser
 
 import numpy as np
 import soundfile as sf
@@ -9,16 +10,33 @@ import torch
 from tqdm import tqdm
 
 warnings.simplefilter(action='ignore', category=Warning)
-
-data_root = '/home/ielab/repos/musdb_mdx/'
-musdb_train_path = data_root + 'train/'
-musdb_test_path = data_root + 'test/'
-musdb_valid_path = data_root + 'valid/'
-
-mix_name = 'mixture'
 source_names = ['vocals', 'drums', 'bass', 'other']
-
 sample_rate = 44100
+
+def main (args):
+    data_root = args.data_dir
+    train = args.train
+    test = args.test
+    valid = args.valid
+
+    musdb_train_path = data_root + 'train/'
+    musdb_test_path = data_root + 'test/'
+    musdb_valid_path = data_root + 'valid/'
+
+    mix_name = 'mixture'
+
+    P = [-3, -2, -1, 0, 1, 2, 3]   # pitch shift amounts (in semitones)
+    T = [-30, -20, -10, 0, 10, 20, 30]   # time stretch amounts (10 means 10% slower)
+
+    for p in P:
+        for t in T:
+            if not (p==0 and t==0):
+                if train:
+                    save_shifted_dataset(p, t, musdb_train_path)
+                if valid:
+                    save_shifted_dataset(p, t, musdb_valid_path)
+                if test:
+                    save_shifted_dataset(p, t, musdb_test_path)
 
 
 def shift(wav, pitch, tempo, voice=False, quick=False, samplerate=44100):
@@ -91,10 +109,11 @@ def load_wav(path, sr=None):
     return sf.read(path, samplerate=sr, dtype='float32')[0].T
 
 
-P = [-3, -2, -1, 0, 1, 2, 3]   # pitch shift amounts (in semitones)
-T = [-30, -20, -10, 0, 10, 20, 30]   # time stretch amounts (10 means 10% slower)
+if __name__ == '__main__':
+    parser = ArgumentParser()
+    parser.add_argument('--data_dir', type=str)
+    parser.add_argument('--train', type=bool, default=True)
+    parser.add_argument('--valid', type=bool, default=False)
+    parser.add_argument('--test', type=bool, default=False)
 
-for p in P:
-    for t in T:
-        if not (p==0 and t==0):
-            save_shifted_dataset(p, t, musdb_train_path)
+    main(parser.parse_args())

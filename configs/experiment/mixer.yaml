@@ -1,5 +1,3 @@
-nes (19 sloc)  348 Bytes
-  
 # @package _global_
 
 # to execute this experiment run:
@@ -24,3 +22,5 @@ datamodule:
   batch_size: 16
   num_workers: 8
   pin_memory: False
+  external_datasets:
+    - test

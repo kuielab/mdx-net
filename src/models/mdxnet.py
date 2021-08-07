@@ -71,7 +71,7 @@ class AbstractMDXNet(LightningModule):
         target_hat_chunks = torch.cat(target_hat_chunks)
 
         # concat all output chunks
-        target_hat = target_hat_chunks.transpose(0, 1).reshape(2, -1)[:, :target.shape[-1]]
+        target_hat = target_hat_chunks.transpose(0, 1).reshape(2, -1)[..., :target.shape[-1]]
 
         score = sdr(target_hat.detach().cpu().numpy(), target.cpu().numpy())
         self.log("val/sdr", score, sync_dist=True, on_step=False, on_epoch=True, logger=True)
@@ -181,12 +181,12 @@ class ConvTDFNet(AbstractMDXNet):
 
 
 class Mixer(LightningModule):
-    def __init__(self, model_cfg_dir, separator_configs, lr, optimizer, dim_t, hop_length, target_name='all'):
+    def __init__(self, model_cfg_dir, separator_configs, lr, optimizer, dim_t, hop_length, overlap, target_name='all'):
         super().__init__()
         self.save_hyperparameters()
 
         # Load pretrained separators per source
-        self.separators = []
+        self.separators = nn.ModuleList()
         for cfg in separator_configs:
             model_config = OmegaConf.load(model_cfg_dir + cfg)
             assert 'ConvTDFNet' in model_config._target_
@@ -203,6 +203,7 @@ class Mixer(LightningModule):
         self.optimizer = optimizer
 
         self.chunk_size = hop_length * (dim_t - 1)
+        self.overlap = overlap
         self.dim_s = len(separator_configs)
         self.mixing_layer = nn.Linear((self.dim_s+1) * 2, self.dim_s * 2, bias=False)
 
@@ -223,29 +224,36 @@ class Mixer(LightningModule):
 
         mixer_output = self(torch.cat([target_wave_hats, mix_wave.unsqueeze(1)], 1))
 
-        loss = mse_loss(mixer_output, target_waves)
+        loss = mse_loss(mixer_output[..., self.overlap:-self.overlap],
+                        target_waves[..., self.overlap:-self.overlap])
         self.log("train/loss", loss, sync_dist=True, on_step=True, on_epoch=True, prog_bar=True)
 
         return {"loss": loss}
 
     # data_loader batch_size should always be 1
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
-        mix_chunk_batches, target = args[0]
+        mix_chunk_batches, target_waves = args[0]
 
         # remove data_loader batch dimension
-        mix_chunk_batches, target = [batch[0] for batch in mix_chunk_batches], target[0]
+        mix_chunk_batches, target_waves = [batch[0] for batch in mix_chunk_batches], target_waves[0]
 
         # process whole track in batches of chunks
         target_hat_chunks = []
-        for batch in mix_chunk_batches:
-            mix_spec = self.stft(batch)
-            target_hat_chunks.append(self.istft(self(mix_spec))[..., self.overlap:-self.overlap])
+        for mix_wave in mix_chunk_batches:
+            target_wave_hats = []
+            for S in self.separators:
+                target_wave_hat = S.istft(S(S.stft(mix_wave)))
+                target_wave_hats.append(target_wave_hat)  # shape = [source, batch, channel, time]
+            target_wave_hats = torch.stack(target_wave_hats).transpose(0, 1)
+            mixer_output = self(torch.cat([target_wave_hats, mix_wave.unsqueeze(1)], 1))
+            target_hat_chunks.append(mixer_output[..., self.overlap:-self.overlap])
+
         target_hat_chunks = torch.cat(target_hat_chunks)
 
         # concat all output chunks
-        target_hat = target_hat_chunks.transpose(0, 1).reshape(2, -1)[:, :target.shape[-1]]
+        target_hat = target_hat_chunks.permute(1,2,0,3).reshape(self.dim_s, 2, -1)[..., :target_waves.shape[-1]]
 
-        score = sdr(target_hat.detach().cpu().numpy(), target.cpu().numpy())
+        score = sdr(target_hat.detach().cpu().numpy(), target_waves.cpu().numpy())
         self.log("val/sdr", score, sync_dist=True, on_step=False, on_epoch=True, logger=True)
 
         return {'loss': score}

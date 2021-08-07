@@ -15,7 +15,7 @@ from src.utils.utils import sdr
 class AbstractMDXNet(LightningModule):
     __metaclass__ = ABCMeta
 
-    def __init__(self, target_name, lr, optimizer, dim_c, dim_f, dim_t, n_fft, hop_length):
+    def __init__(self, target_name, lr, optimizer, dim_c, dim_f, dim_t, n_fft, hop_length, overlap, ckpt):
         super().__init__()
         self.target_name = target_name
         self.lr = lr
@@ -28,10 +28,13 @@ class AbstractMDXNet(LightningModule):
         self.hop_length = hop_length
 
         self.chunk_size = hop_length * (self.dim_t - 1)
-        self.overlap = n_fft // 2
+        self.overlap = overlap
         self.window = nn.Parameter(torch.hann_window(window_length=self.n_fft, periodic=True), requires_grad=False)
         self.freq_pad = nn.Parameter(torch.zeros([1, dim_c, self.n_bins - self.dim_f, self.dim_t]), requires_grad=False)
         self.input_sample_shape = (self.stft(torch.zeros([1, 2, self.chunk_size]))).shape
+
+        if ckpt is not None:
+            self.load_from_checkpoint(ckpt)
 
     def configure_optimizers(self):
         if self.optimizer == 'rmsprop':
@@ -47,6 +50,13 @@ class AbstractMDXNet(LightningModule):
 
         return {"loss": loss}
 
+    # Validation SDR is calculated on whole tracks and not chunks since
+    # short inputs have high possibility of being silent (all-zero signal)
+    # which leads to very low sdr values regardless of the model.
+    # A natural procedure would be to split a track into chunk batches and
+    # load them on multiple gpus, but aggregation was too difficult.
+    # So instead we load one whole track on a single device (data_loader batch_size should always be 1)
+    # and do all the batch splitting and aggregation on a single device.
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
         mix_chunk_batches, target = args[0]
 
@@ -61,7 +71,7 @@ class AbstractMDXNet(LightningModule):
         target_hat_chunks = torch.cat(target_hat_chunks)
 
         # concat all output chunks
-        target_hat = target_hat_chunks.transpose(0, 1).reshape(2, -1)[:, :target.shape[-1]]
+        target_hat = target_hat_chunks.transpose(0, 1).reshape(2, -1)[..., :target.shape[-1]]
 
         score = sdr(target_hat.detach().cpu().numpy(), target.cpu().numpy())
         self.log("val/sdr", score, sync_dist=True, on_step=False, on_epoch=True, logger=True)
@@ -85,9 +95,10 @@ class AbstractMDXNet(LightningModule):
 
 class ConvTDFNet(AbstractMDXNet):
     def __init__(self, target_name, lr, optimizer, dim_c, dim_f, dim_t, n_fft, hop_length,
-                 num_blocks, l, g, k, bn, bias):
+                 num_blocks, l, g, k, bn, bias, overlap, ckpt):
 
-        super(ConvTDFNet, self).__init__(target_name, lr, optimizer, dim_c, dim_f, dim_t, n_fft, hop_length)
+        super(ConvTDFNet, self).__init__(
+            target_name, lr, optimizer, dim_c, dim_f, dim_t, n_fft, hop_length, overlap, ckpt)
         self.save_hyperparameters()
 
         self.num_blocks = num_blocks
@@ -170,28 +181,33 @@ class ConvTDFNet(AbstractMDXNet):
 
 
 class Mixer(LightningModule):
-    def __init__(self, model_cfg_dir, separator_configs, lr, optimizer, dim_t, hop_length, target_name='all'):
+    def __init__(self, separator_configs, separator_ckpts, lr, optimizer, dim_t, hop_length, overlap, target_name='all'):
         super().__init__()
         self.save_hyperparameters()
 
         # Load pretrained separators per source
-        self.separators = []
-        for cfg in separator_configs:
-            model_config = OmegaConf.load(model_cfg_dir + cfg)
+        self.separators = nn.ModuleDict()
+        for ckpt in separator_ckpts.values():
+            # if failed here, then fill valid ckpt pahts in the given yaml for Mixer training
+            assert ckpt is not None
+
+        for source in separator_configs.keys():
+            model_config = OmegaConf.load(separator_configs[source])
             assert 'ConvTDFNet' in model_config._target_
             separator = ConvTDFNet(**{key: model_config[key] for key in dict(model_config) if key !='_target_'})
-            self.separators.append(separator)
+            separator.load_from_checkpoint(separator_ckpts[source])
+            self.separators[source] = separator
 
         # Freeze
-        for sep in self.separators:
-            with torch.no_grad():
-                for param in sep.parameters():
-                    param.requires_grad = False
+        with torch.no_grad():
+            for param in self.separators.parameters():
+                param.requires_grad = False
 
         self.lr = lr
         self.optimizer = optimizer
 
         self.chunk_size = hop_length * (dim_t - 1)
+        self.overlap = overlap
         self.dim_s = len(separator_configs)
         self.mixing_layer = nn.Linear((self.dim_s+1) * 2, self.dim_s * 2, bias=False)
 
@@ -204,7 +220,8 @@ class Mixer(LightningModule):
 
         with torch.no_grad():
             target_wave_hats = []
-            for S in self.separators:
+            for source in ['bass', 'drums', 'other', 'vocals']:
+                S = self.separators[source]
                 target_wave_hat = S.istft(S(S.stft(mix_wave)))
                 target_wave_hats.append(target_wave_hat)  # shape = [source, batch, channel, time]
 
@@ -212,29 +229,37 @@ class Mixer(LightningModule):
 
         mixer_output = self(torch.cat([target_wave_hats, mix_wave.unsqueeze(1)], 1))
 
-        loss = mse_loss(mixer_output, target_waves)
+        loss = mse_loss(mixer_output[..., self.overlap:-self.overlap],
+                        target_waves[..., self.overlap:-self.overlap])
         self.log("train/loss", loss, sync_dist=True, on_step=True, on_epoch=True, prog_bar=True)
 
         return {"loss": loss}
 
     # data_loader batch_size should always be 1
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
-        mix_chunk_batches, target = args[0]
+        mix_chunk_batches, target_waves = args[0]
 
         # remove data_loader batch dimension
-        mix_chunk_batches, target = [batch[0] for batch in mix_chunk_batches], target[0]
+        mix_chunk_batches, target_waves = [batch[0] for batch in mix_chunk_batches], target_waves[0]
 
         # process whole track in batches of chunks
         target_hat_chunks = []
-        for batch in mix_chunk_batches:
-            mix_spec = self.stft(batch)
-            target_hat_chunks.append(self.istft(self(mix_spec))[..., self.overlap:-self.overlap])
+        for mix_wave in mix_chunk_batches:
+            target_wave_hats = []
+            for source in ['bass', 'drums', 'other', 'vocals']:
+                S = self.separators[source]
+                target_wave_hat = S.istft(S(S.stft(mix_wave)))
+                target_wave_hats.append(target_wave_hat)  # shape = [source, batch, channel, time]
+            target_wave_hats = torch.stack(target_wave_hats).transpose(0, 1)
+            mixer_output = self(torch.cat([target_wave_hats, mix_wave.unsqueeze(1)], 1))
+            target_hat_chunks.append(mixer_output[..., self.overlap:-self.overlap])
+
         target_hat_chunks = torch.cat(target_hat_chunks)
 
         # concat all output chunks
-        target_hat = target_hat_chunks.transpose(0, 1).reshape(2, -1)[:, :target.shape[-1]]
+        target_hat = target_hat_chunks.permute(1,2,0,3).reshape(self.dim_s, 2, -1)[..., :target_waves.shape[-1]]
 
-        score = sdr(target_hat.detach().cpu().numpy(), target.cpu().numpy())
+        score = sdr(target_hat.detach().cpu().numpy(), target_waves.cpu().numpy())
         self.log("val/sdr", score, sync_dist=True, on_step=False, on_epoch=True, logger=True)
 
         return {'loss': score}

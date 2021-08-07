@@ -19,6 +19,7 @@ datamodule:
   batch_size: 8
   num_workers: 8
   pin_memory: False
+  overlap: 2048
 
 callbacks:
   early_stopping:

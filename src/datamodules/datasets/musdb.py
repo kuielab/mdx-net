@@ -19,9 +19,9 @@ def check_target_name(target_name, source_names):
         print('[ERROR] please identify target name. ex) +datamodule.target_name="vocals"')
         exit(-1)
     try:
-        assert target_name in source_names
+        assert target_name in source_names or target_name == 'all'
     except AssertionError:
-        print('[ERROR] target name should one of "bass", "drums", "other", "vocals"')
+        print('[ERROR] target name should one of "bass", "drums", "other", "vocals", "all"')
         exit(-1)
 
 
@@ -46,7 +46,7 @@ class MusdbDataset(Dataset):
 
 
 class MusdbTrainDataset(MusdbDataset):
-    def __init__(self, data_dir, chunk_size, target_name, aug_params, use_testset=False):
+    def __init__(self, data_dir, chunk_size, target_name, aug_params, external_datasets):
         super(MusdbTrainDataset, self).__init__(data_dir, chunk_size)
 
         self.target_name = target_name
@@ -56,8 +56,8 @@ class MusdbTrainDataset(MusdbDataset):
             os.mkdir(self.musdb_path.joinpath('metadata'))
 
         splits = ['train']
-        if use_testset:   # for leaderboard B
-            splits.append('test')
+        if external_datasets is not None:
+            splits += external_datasets
 
         # collect paths for datasets and metadata (track names and duration)
         datasets, metadata_caches = [], []
@@ -99,9 +99,17 @@ class MusdbTrainDataset(MusdbDataset):
             source = load_wav(track_path.joinpath(source_name + '.wav'),
                               track_length=track_length, chunk_size=self.chunk_size)
             sources.append(source)
+
         mix = sum(sources)
-        target = sources[self.source_names.index(self.target_name)]
-        return torch.from_numpy(mix), torch.from_numpy(target)
+
+        if self.target_name == 'all':
+            # Targets for models that separate all four sources (ex. Demucs).
+            # This adds additional 'source' dimension => batch_shape=[batch, source, channel, time]
+            target = sources
+        else:
+            target = sources[self.source_names.index(self.target_name)]
+
+        return torch.tensor(mix), torch.tensor(target)
 
     def __len__(self):
         return self.epoch_size
@@ -124,7 +132,14 @@ class MusdbValidDataset(MusdbDataset):
 
     def __getitem__(self, index):
         mix = load_wav(self.track_paths[index].joinpath('mixture.wav'))
-        target = load_wav(self.track_paths[index].joinpath(self.target_name + '.wav'))
+
+        if self.target_name == 'all':
+            # Targets for models that separate all four sources (ex. Demucs).
+            # This adds additional 'source' dimension => batch_shape=[batch, source, channel, time]
+            target = [load_wav(self.track_paths[index].joinpath(source_name + '.wav'))
+                      for source_name in self.source_names]
+        else:
+            target = load_wav(self.track_paths[index].joinpath(self.target_name + '.wav'))
 
         chunk_output_size = self.chunk_size - 2 * self.overlap
         left_pad = np.zeros([2, self.overlap])
@@ -135,7 +150,7 @@ class MusdbValidDataset(MusdbDataset):
         mix_chunks = [mix_padded[:, i * chunk_output_size: i * chunk_output_size + self.chunk_size]
                       for i in range(num_chunks)]
         mix_chunk_batches = torch.tensor(mix_chunks, dtype=torch.float32).split(self.batch_size)
-        return mix_chunk_batches, torch.from_numpy(target)
+        return mix_chunk_batches, torch.tensor(target)
 
     def __len__(self):
         return len(self.track_paths)

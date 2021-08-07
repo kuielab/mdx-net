@@ -3,7 +3,7 @@ _target_: src.models.mdxnet.ConvTDFNet
 target_name: 'other'
 
 # absolute path to the model checkpoint you want to load (random init if null)
-ckpt: '/home/ielab/PycharmProjects/mdx-net/logs/runs/other/2021-08-04/01-01-09/checkpoints/epoch=389.ckpt'
+ckpt: #'/home/ielab/PycharmProjects/mdx-net/logs/runs/other/2021-08-04/01-01-09/checkpoints/epoch=1529.ckpt'
 
 # model
 num_blocks: 11
@@ -19,6 +19,8 @@ dim_f: 2048
 dim_t: 256
 dim_c: 4
 hop_length: 1024
+
+overlap: 4096
 
 # optimizer
 lr: 0.0001

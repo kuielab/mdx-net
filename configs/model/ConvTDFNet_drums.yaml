@@ -20,6 +20,8 @@ dim_t: 256
 dim_c: 4
 hop_length: 1024
 
+overlap: 2048
+
 # optimizer
 lr: 0.0001
 optimizer: rmsprop

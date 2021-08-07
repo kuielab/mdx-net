@@ -10,17 +10,16 @@ seed: 2021
 
 logger:
   wandb:
-    name: 'n9l3g32'
+    name: 'mdx_drums'
 
 trainer:
-  gpus: '2'
-  check_val_every_n_epoch: 10
+  gpus: '0,1'
 
 datamodule:
-  batch_size: 2
+  batch_size: 8
   num_workers: 8
   pin_memory: False
 
 callbacks:
   early_stopping:
-    patience: 300
+    patience: 500

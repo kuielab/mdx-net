@@ -20,10 +20,10 @@ batch_size: 8
 num_workers: 0
 pin_memory: False
 
-external_datasets:
+
 aug_params:
-  - 2
-  - 20
+  - 2   # maximum pitch shift in semitones (-x < shift param < x)
+  - 20  # maximum time stretch percentage (-x < stretch param < x)
 
 validation_set:
   - Actions - One Minute Smile

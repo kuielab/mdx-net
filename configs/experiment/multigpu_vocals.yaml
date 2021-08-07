@@ -10,16 +10,16 @@ seed: 2021
 
 logger:
   wandb:
-    name: 'n11l3g32'
+    name: 'mdx_vocals'
 
 trainer:
-  gpus: '2, 3'
+  gpus: '0,1,2,3'
 
 datamodule:
-  batch_size: 2
+  batch_size: 16
   num_workers: 8
   pin_memory: False
 
 callbacks:
   early_stopping:
-    patience: 300
+    patience: 500

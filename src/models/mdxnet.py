@@ -15,7 +15,7 @@ from src.utils.utils import sdr
 class AbstractMDXNet(LightningModule):
     __metaclass__ = ABCMeta
 
-    def __init__(self, target_name, lr, optimizer, dim_c, dim_f, dim_t, n_fft, hop_length, overlap, ckpt):
+    def __init__(self, target_name, lr, optimizer, dim_c, dim_f, dim_t, n_fft, hop_length, overlap):
         super().__init__()
         self.target_name = target_name
         self.lr = lr
@@ -32,9 +32,6 @@ class AbstractMDXNet(LightningModule):
         self.window = nn.Parameter(torch.hann_window(window_length=self.n_fft, periodic=True), requires_grad=False)
         self.freq_pad = nn.Parameter(torch.zeros([1, dim_c, self.n_bins - self.dim_f, self.dim_t]), requires_grad=False)
         self.input_sample_shape = (self.stft(torch.zeros([1, 2, self.chunk_size]))).shape
-
-        if ckpt is not None:
-            self.load_from_checkpoint(ckpt)
 
     def configure_optimizers(self):
         if self.optimizer == 'rmsprop':
@@ -95,10 +92,10 @@ class AbstractMDXNet(LightningModule):
 
 class ConvTDFNet(AbstractMDXNet):
     def __init__(self, target_name, lr, optimizer, dim_c, dim_f, dim_t, n_fft, hop_length,
-                 num_blocks, l, g, k, bn, bias, overlap, ckpt):
+                 num_blocks, l, g, k, bn, bias, overlap):
 
         super(ConvTDFNet, self).__init__(
-            target_name, lr, optimizer, dim_c, dim_f, dim_t, n_fft, hop_length, overlap, ckpt)
+            target_name, lr, optimizer, dim_c, dim_f, dim_t, n_fft, hop_length, overlap)
         self.save_hyperparameters()
 
         self.num_blocks = num_blocks

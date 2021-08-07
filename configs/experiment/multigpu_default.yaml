@@ -6,3 +6,12 @@
 defaults:
   - override /callbacks: wandb
   - override /logger: wandb
+
+
+callbacks:
+  early_stopping:
+    patience: 50
+
+datamodule:
+  external_datasets:
+    - test

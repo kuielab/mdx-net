@@ -2,9 +2,6 @@ _target_: src.models.mdxnet.ConvTDFNet
 
 target_name: 'drums'
 
-# absolute path to the model checkpoint you want to load (random init if null)
-ckpt: null
-
 # model
 num_blocks: 11
 l: 3
@@ -23,5 +20,5 @@ hop_length: 1024
 overlap: 2048
 
 # optimizer
-lr: 0.0001
+lr: 0.00005
 optimizer: rmsprop

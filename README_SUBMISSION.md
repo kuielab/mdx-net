@@ -27,36 +27,30 @@
 ## Model Summary
 
 * Data
-  * Our spectrogram-based models were trained in two phases (see "How to reproduce the training" for details).
-  * For phase 1 we used the MusDB default  86/14 train and validation splits.
-  * For phase 2 we used
-    * all 100 MusDB trainset tracks for training
-    * the MDX challenge public test data for validation
+  * We used the MusDB default 86/14 train and validation splits.
   * Augmentation
     * Random chunking and mixing sources from different tracks ([1])
     * Pitch shift and time stretch ([2])
 * Model
-  * Blend[1] of two models: lightweight TFC-TDF[3] and Demucs[4] 
+  * Blend[1] of two models: a modified version of TFC-TDF[3] and Demucs[4] 
   * TFC-TDF 
     * Models were trained separately for each source.
     * The input [frequency, time] dimensions are fixed to [2048, 256] for all sources 
       * 256 frames = 6 seconds of audio (sample_rate=44100, hop_length=1024)
-      * High frequencies were cut off from the mixture before being input to the networks, and the number of frequency bins to be discarded differs for each source (ex. drums have more high frequencies compared to bass, so cut off more when doing bass separation). 
-      * STFT window size differs for each source to fit the frequency dimension of 2048 after cutting off different number of high frequency bins
+      * High frequencies were cut off from the mixture before being input to the networks, and the number of frequency bins to be discarded differs for each source (ex. drums have more high frequencies compared to bass, so cut off more when doing bass separation). In order to fit the frequency dimension of 2048, n_fft differs for each source.
     * We made the following modifications to the original TFC-TDF model:
       * No densely connected convolutional blocks
       * Multiplicative skip connections
-      * Increased depth and  number of hidden channels
-    * After training the source-dedicated models we trained an additional network (which we call the 'Mixer') on top of the model outputs, which takes all four estimated sources as input and outputs better estimated sources
-      * We only tried a single 1x1 convolution layer for the Mixer, but still gained at least 0.1 SDR for every source on the MDX test set
-      * trained without fine-tuning the source-dedicated models
+      * Increased depth and number of hidden channels
+    * After training the per-source models we trained an additional network (which we call the 'Mixer') on top of the model outputs, which takes all four estimated sources as input and outputs better estimated sources
+      * We only tried a single 1x1 convolution layer for the Mixer (due to inference time limit), but still gained at least 0.1 SDR for every source on the MDX test set.
+      * Mixer is trained without fine-tuning the separation models.
   * Demucs
     * we used the pretrained model with 64 initial hidden channels (not demucs48_hq)
     * overlap=0.5 and no shift trick
   * blending parameters (TFC-TDF : Demucs) => bass 5:5, drums 5:5, other 7:3, vocals 9:1
 
-[1] Stöter, Fabian-Robert, et al. "Open-unmix-a reference implementation for
-    music source separation." Journal of Open Source Software 4.41 (2019): 1667.
+[1] S. Uhlich et al., "Improving music source separation based on deep neural networks through data augmentation and network blending," 2017 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP), 2017.
 
 [2] Cohen-Hadria, Alice, Axel Roebel, and Geoffroy Peeters. "Improving singing voice separation using Deep U-Net and Wave-U-Net with data augmentation." 2019 27th European Signal Processing Conference (EUSIPCO). IEEE, 2019.
 
@@ -69,9 +63,18 @@
 
 ## How to reproduce the submission
 
-***Note***: I don't know why but submission might be failed randomly due to the time limit. you might have to submit it several times.
+***Note***: The inference time is very close to the time limit, so submission will randomly fail. You might have to submit it several times ().
 
 - obtain ```.onnx``` files and ```.pt``` file as described in the [following section](#how-to-reproduce-the-training)
+- follow this instruction to deploy parameters
+    ```
+    git clone https://github.com/kuielab/mdx-net-submission.git
+    cd mdx-net-submission
+    git checkout leaderboard_A
+    git lfs install
+    mv ${*.onnx} onnx/
+    mv ${*.pt} model/  
+    ```
 - or visit the following links that hold the pretrained ```.onnx``` files and ```.pt``` file
   - [Leaderboard A](https://github.com/kuielab/mdx-net-submission/tree/leaderboard_A)
   - [Leaderboard B]()
@@ -85,21 +88,23 @@
 
 ### 1. Data Preparation
 
-1. Data Augmentation [2]
-  - run ```src/utils/data_augmentation.py```
+Data Augmentation [2]
+- This could have been done on-the-fly along with chunking and mixing ([1]), but we preferred fast processing time over less disk usage. The following scripts are for saving augmented tracks to disk before training. 
 
-2. (for Leaderboard B only)
-  - training with test dataset as well
+- For Leaderboard A
+    - run ```python src/utils/data_augmentation.py --data_dir ${your_musdb_path} --train True --valid False --test False```
+- For Leaderboard B
+    - run ```python src/utils/data_augmentation.py --data_dir ${your_musdb_path} --train True --valid True --test True``` 
 
 ### 2. Phase 1
 
 - Train ```src.models.mdxnet.ConvTDFNet``` for each source.
   - vocals: ```python run.py experiment=multigpu_vocals model=ConvTDFNet_vocals```
   - drums: ```python run.py experiment=multigpu_drums model=ConvTDFNet_drums```
-  - bass: ```python run.py experiment=multigpu_bass```
+  - bass: ```python run.py experiment=multigpu_bass model=ConvTDFNet_bass```
   - other: ```python run.py experiment=multigpu_other model=ConvTDFNet_other```
 
-- for training, each takes at least 3 days, usually 4~5 days with four ```2080ti```s.
+- for training, each takes at least 3 days, usually 4~5 days with four ```-2080ti-s```.
   - this model directly estimates the target complex-valued spectrogram
   - We empirically found that model based on this type of estimation method
     - even if its validation loss converges, its SDR performance can be improved further
@@ -117,7 +122,22 @@
   - this function was implemented as a callback function
     - see [this](https://github.com/kuielab/mdx-net/blob/7c6f7daecde13c0e8ed97f308577f6690b0c31af/configs/callbacks/default.yaml#L18)
     - and [this](https://github.com/kuielab/mdx-net/blob/7c6f7daecde13c0e8ed97f308577f6690b0c31af/src/callbacks/onnx_callback.py#L11)
-  
+
+#### The epoch of each checkpoint we used  
+- Leaderboard A
+    - vocals: 1400 epoch
+    - bass: 1300 epoch
+    - drums: 300 epoch
+    - other: 900 epoch
+    - note: but if we keep training then the SDRs usually goes higher
+
+- Leaderboard B
+    - vocals: 1960 epoch
+    - bass: 1720 epoch
+    - drums: 940 epoch
+    - other: 1660 epoch
+    - note: but if we keep training then the SDRs usually goes higher
+
 ### 3. Phase 2 (Optional)
 
 This phase can improve the SDR (but not significantly).

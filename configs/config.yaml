@@ -6,7 +6,7 @@ defaults:
   - datamodule: musdb18_hq
   - callbacks: default # set this to null if you don't want to use callbacks
   - logger: null # set logger here or use command line (e.g. `python run.py logger=wandb`)
-
+  - model: null
   - experiment: null
   - hparams_search: null
 

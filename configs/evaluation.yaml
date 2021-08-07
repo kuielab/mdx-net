@@ -2,28 +2,23 @@
 
 # specify here default training configuration
 defaults:
-  - datamodule: dummy.yaml
-  - eval_config: default.yaml
+  - model: ConvTDFNet_other
   - logger: wandb.yaml
   # enable color logging
   - override hydra/hydra_logging: colorlog
   - override hydra/job_logging: colorlog
 
-# dummy
-target_name: vocals
-work_dir: ${hydra:runtime.cwd}
-# dummy
-
-# default
-data_dir: ${oc.env:data_dir}
-onnx_dir: ${oc.env:onnx_dir}
+ckpt_path: 'other/2021-08-02/23-12-31/checkpoints/epoch=339.ckpt'
 
 split: 'valid'
+batch_size: 4
+device: 'cuda:2'
 
+data_dir: ${oc.env:data_dir}
+ckpt_dir: ${oc.env:ckpt_dir}
 wandb_api_key: ${oc.env:wandb_api_key}
-
-batch_size: 8
 
 logger:
   wandb:
     project: mdx_eval_${split}
+    name: ${ckpt_path}

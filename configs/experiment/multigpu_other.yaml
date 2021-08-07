@@ -4,34 +4,22 @@
 # python run.py experiment=example_simple.yaml
 
 defaults:
-  - multigpu_default.yaml
+  - multigpu_default
 
-# Training Environment
-target_name: other
-batch_size: 4
-gpus: 4
-lr: 0.0002
-check_val_every_n_epoch: 10
 seed: 2021
-num_workers: 0 # num of cpus
-pin_memory: False # True then faster
 
-# STFT
-n_fft: 8192
-dim_f: 2048
-dim_t: 128
-dim_c: 4
-hop_length: 1024
+logger:
+  wandb:
+    name: 'n11l3g32'
 
-# data augmentation
-external_datasets:
-augmentation: True
+trainer:
+  gpus: '0,1,3'
 
-model:
-  # model configuration
-  num_blocks: 9
-  l: 5
-  g: 32
-  k: 3
-  bn: 8
-  bias: False
+datamodule:
+  batch_size: 8
+  num_workers: 8
+  pin_memory: False
+
+callbacks:
+  early_stopping:
+    patience: 300

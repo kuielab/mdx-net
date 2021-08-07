@@ -14,10 +14,9 @@ from pytorch_lightning.loggers.wandb import WandbLogger
 from pytorch_lightning.utilities import rank_zero_only
 
 
-
 def sdr(est, ref):
-    ratio = torch.sum(ref**2) / torch.sum((ref-est)**2)
-    return 10*torch.log10(ratio + 1e-5)
+    ratio = np.sum(ref**2) / np.sum((ref-est)**2)
+    return 10*np.log10(ratio + 1e-10)
 
 
 def load_wav(path, track_length=None, chunk_size=None):

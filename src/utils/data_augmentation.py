@@ -1,9 +1,7 @@
-import io
 import os
 import subprocess as sp
 import tempfile
 import warnings
-from pathlib import Path
 
 import numpy as np
 import soundfile as sf
@@ -12,7 +10,7 @@ from tqdm import tqdm
 
 warnings.simplefilter(action='ignore', category=Warning)
 
-data_root = 'D:/repos/musdb18hq/'
+data_root = '/home/ielab/repos/musdb_mdx/'
 musdb_train_path = data_root + 'train/'
 musdb_test_path = data_root + 'test/'
 musdb_valid_path = data_root + 'valid/'

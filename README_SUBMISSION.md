@@ -63,7 +63,7 @@
 
 ## How to reproduce the submission
 
-***Note***: I don't know why but submission might be failed randomly due to the time limit. you might have to submit it several times.
+***Note***: The inference time is very close to the time limit, so submission will randomly fail. You might have to submit it several times ().
 
 - obtain ```.onnx``` files and ```.pt``` file as described in the [following section](#how-to-reproduce-the-training)
 - follow this instruction to deploy parameters
@@ -89,6 +89,7 @@
 ### 1. Data Preparation
 
 Data Augmentation [2]
+- This could have been done on-the-fly along with chunking and mixing ([1]), but we preferred fast processing time over less disk usage. The following scripts are for saving augmented tracks to disk before training. 
 
 - For Leaderboard A
     - run ```python src/utils/data_augmentation.py --data_dir ${your_musdb_path} --train True --valid False --test False```

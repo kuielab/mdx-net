@@ -85,12 +85,12 @@
 
 ### 1. Data Preparation
 
-1. Data Augmentation [2]
-  - run ```python src/utils/data_augmentation.py --data_dir ${your_musdb_path} --train True --valid False --test False``` for Leaderboard A
-  - run ```python src/utils/data_augmentation.py --data_dir ${your_musdb_path} --train True --valid True --test True``` for Leaderboard B  
+Data Augmentation [2]
 
-2. (for Leaderboard B only)
-  - training with test dataset as well
+- For Leaderboard A
+    - run ```python src/utils/data_augmentation.py --data_dir ${your_musdb_path} --train True --valid False --test False```
+- For Leaderboard B
+    - run ```python src/utils/data_augmentation.py --data_dir ${your_musdb_path} --train True --valid True --test True``` 
 
 ### 2. Phase 1
 
@@ -100,7 +100,7 @@
   - bass: ```python run.py experiment=multigpu_bass model=ConvTDFNet_bass```
   - other: ```python run.py experiment=multigpu_other model=ConvTDFNet_other```
 
-- for training, each takes at least 3 days, usually 4~5 days with four ```2080ti```s.
+- for training, each takes at least 3 days, usually 4~5 days with four ```-2080ti-s```.
   - this model directly estimates the target complex-valued spectrogram
   - We empirically found that model based on this type of estimation method
     - even if its validation loss converges, its SDR performance can be improved further
@@ -118,7 +118,22 @@
   - this function was implemented as a callback function
     - see [this](https://github.com/kuielab/mdx-net/blob/7c6f7daecde13c0e8ed97f308577f6690b0c31af/configs/callbacks/default.yaml#L18)
     - and [this](https://github.com/kuielab/mdx-net/blob/7c6f7daecde13c0e8ed97f308577f6690b0c31af/src/callbacks/onnx_callback.py#L11)
-  
+
+#### The epoch of each checkpoint we used  
+- Leaderboard A
+    - vocals: 1400 epoch
+    - bass: 1300 epoch
+    - drums: 300 epoch
+    - other: 900 epoch
+    - note: but if we keep training then the SDRs usually goes higher
+
+- Leaderboard B
+    - vocals: 1960 epoch
+    - bass: 1720 epoch
+    - drums: 940 epoch
+    - other: 1660 epoch
+    - note: but if we keep training then the SDRs usually goes higher
+
 ### 3. Phase 2 (Optional)
 
 This phase can improve the SDR (but not significantly).

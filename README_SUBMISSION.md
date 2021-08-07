@@ -86,7 +86,7 @@
 ### 1. Data Preparation
 
 1. Data Augmentation [2]
-  - run ```src/utils/data_augmentation.py```
+  - run ```python src/utils/data_augmentation.py```
 
 2. (for Leaderboard B only)
   - training with test dataset as well

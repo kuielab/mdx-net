@@ -3,6 +3,7 @@ import os
 import subprocess as sp
 import tempfile
 import warnings
+from pathlib import Path
 
 import numpy as np
 import soundfile as sf
@@ -11,12 +12,10 @@ from tqdm import tqdm
 
 warnings.simplefilter(action='ignore', category=Warning)
 
-data_root = '../../data/'
-musdb_train_path = data_root + 'musdbHQ/train/'
-musdb_test_path = data_root + 'musdbHQ/test/'
-musdb_valid_path = data_root + 'musdbHQ/valid/'
-slakh_path = data_root + 'slakh/2100/'
-vocalset_path = data_root + 'vocalset/'
+data_root = 'D:/repos/musdb18hq/'
+musdb_train_path = data_root + 'train/'
+musdb_test_path = data_root + 'test/'
+musdb_valid_path = data_root + 'valid/'
 
 mix_name = 'mixture'
 source_names = ['vocals', 'drums', 'bass', 'other']
@@ -41,12 +40,14 @@ def shift(wav, pitch, tempo, voice=False, quick=False, samplerate=44100):
     Requires `soundstretch` to be installed, see
     https://www.surina.net/soundtouch/soundstretch.html
     """
+
+    inputfile = tempfile.NamedTemporaryFile(suffix=".wav")
     outfile = tempfile.NamedTemporaryFile(suffix=".wav")
-    in_ = io.BytesIO()
-    wavfile.write(in_, sample_rate=samplerate, audio_data=i16_pcm(wav).t().numpy())
+
+    sf.write(inputfile.name, data=i16_pcm(wav).t().numpy(), samplerate=samplerate, format='WAV')
     command = [
         "soundstretch",
-        "stdin",
+        inputfile.name,
         outfile.name,
         f"-pitch={pitch}",
         f"-tempo={tempo:.6f}",
@@ -56,12 +57,12 @@ def shift(wav, pitch, tempo, voice=False, quick=False, samplerate=44100):
     if voice:
         command += ["-speech"]
     try:
-        sp.run(command, capture_output=True, input=in_.getvalue(), check=True)
+        sp.run(command, capture_output=True, check=True)
     except sp.CalledProcessError as error:
         raise RuntimeError(f"Could not change bpm because {error.stderr.decode('utf-8')}")
-    wav, sr, _ = wavfile.read(outfile.name)
-    wav = wav.copy()
-    wav = f32_pcm(torch.from_numpy(np.array(wav)).t())
+    wav, sr = sf.read(outfile.name, dtype='float32')
+    # wav = np.float32(wav)
+    # wav = f32_pcm(torch.from_numpy(wav).t())
     assert sr == samplerate
     return wav
 
@@ -84,8 +85,8 @@ def save_shifted_dataset(delta_pitch, delta_tempo, data_path):
                 torch.tensor(source),
                 delta_pitch,
                 delta_tempo,
-                voice=s_name == 'vocals').T
-            sf.write(f'{out_path}/{track_name}/{s_name}.wav', shifted, samplerate=sample_rate)
+                voice=s_name == 'vocals')
+            sf.write(f'{out_path}/{track_name}/{s_name}.wav', shifted, samplerate=sample_rate, format='WAV')
 
 
 def load_wav(path, sr=None):

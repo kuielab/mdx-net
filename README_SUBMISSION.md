@@ -10,7 +10,7 @@
 
   | SDR_song | SDR_bass | SDR_drums | SDR_other | SDR_vocals |
   | :------: | :------: | :-------: | :-------: | :--------: |
-  |   7.37   |   7.50   |   7.55    |   5.53    |    8.90    |
+  |   7.24   |   7.23   |   7.17    |   5.64    |    8.90    |
 
 ### Leaderboard B
 * Submission ID: 151249
@@ -18,9 +18,11 @@
 * Final rank: 3nd place on leaderboard A
 * Final scores on MDXDB21:
 
+
   | SDR_song | SDR_bass | SDR_drums | SDR_other | SDR_vocals |
   | :------: | :------: | :-------: | :-------: | :--------: |
-  |   7.24   |   7.23   |   7.17    |   5.64    |    8.90    |
+  |   7.37   |   7.50   |   7.55    |   5.53    |    8.90    |
+
 
 ## Model Summary
 

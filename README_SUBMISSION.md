@@ -97,7 +97,7 @@
 - Train ```src.models.mdxnet.ConvTDFNet``` for each source.
   - vocals: ```python run.py experiment=multigpu_vocals model=ConvTDFNet_vocals```
   - drums: ```python run.py experiment=multigpu_drums model=ConvTDFNet_drums```
-  - bass: ```python run.py experiment=multigpu_bass```
+  - bass: ```python run.py experiment=multigpu_bass model=ConvTDFNet_bass```
   - other: ```python run.py experiment=multigpu_other model=ConvTDFNet_other```
 
 - for training, each takes at least 3 days, usually 4~5 days with four ```2080ti```s.

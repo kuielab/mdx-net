@@ -2,17 +2,6 @@
 
 ## Submission Summary
 
-### Leaderboard A
-* Submission ID: 151907
-* Submitter: kim_min_seok
-* Final rank: 2nd place on leaderboard A
-* Final scores on MDXDB21:
-
-  | SDR_song | SDR_bass | SDR_drums | SDR_other | SDR_vocals |
-  | :------: | :------: | :-------: | :-------: | :--------: |
-  |   7.24   |   7.23   |   7.17    |   5.64    |    8.90    |
-
-### Leaderboard B
 * Submission ID: 151249
 * Submitter: kim_min_seok
 * Final rank: 3nd place on leaderboard A
@@ -70,17 +59,14 @@
     ```
     git clone https://github.com/kuielab/mdx-net-submission.git
     cd mdx-net-submission
-    git checkout leaderboard_A
+    git checkout leaderboard_B
     git lfs install
     mv ${*.onnx} onnx/
-    mv ${*.pt} model/  
     ```
 - or visit the following links that hold the pretrained ```.onnx``` files and ```.pt``` file
-  - [Leaderboard A](https://github.com/kuielab/mdx-net-submission/tree/leaderboard_A)
   - [Leaderboard B](https://github.com/kuielab/mdx-net-submission/tree/leaderboard_B)
 
 - or visit the submitted repository
-  - [Leaderboard A](https://gitlab.aicrowd.com/kim_min_seok/demix/tree/submission133)
   - [Leaderboard B](https://gitlab.aicrowd.com/kim_min_seok/demix/tree/submission106)
 
 
@@ -91,8 +77,6 @@
 Pitch Shift and Time Stretch [2]
 - This could have been done on-the-fly along with chunking and mixing ([1]), but we preferred faster train steps over less disk usage. The following scripts are for saving augmented tracks to disk before training. 
 
-- For Leaderboard A
-    - run ```python src/utils/data_augmentation.py --data_dir ${your_musdb_path} --train True --valid False --test False```
 - For Leaderboard B
     - run ```python src/utils/data_augmentation.py --data_dir ${your_musdb_path} --train True --valid True --test True``` 
 
@@ -119,11 +103,6 @@ Pitch Shift and Time Stretch [2]
     - and [this](https://github.com/kuielab/mdx-net/blob/7c6f7daecde13c0e8ed97f308577f6690b0c31af/src/callbacks/onnx_callback.py#L11)
 
 #### The epoch of each checkpoint we used  
-- Leaderboard A
-    - vocals: 2360 epoch
-    - bass: 1720 epoch
-    - drums: 600 epoch
-    - other: 1720 epoch
 
 - Leaderboard B
     - vocals: 1960 epoch
@@ -132,16 +111,6 @@ Pitch Shift and Time Stretch [2]
     - other: 1660 epoch
 
 > note: the models were submitted before convergence, and the learning rate might have not been optimal as well (ex. for 'other', Leaderboard A score is higher)
-
-### 3. Phase 2 (Optional)
-
-This phase **does not fine-tune** the pretrained separators from the previous phase.
-
-- Train Mixer
-  - locate candidate checkpoints by appending ```ckpt``` variable in the ```yaml``` config file.
-  - train ```from src.models.mdxnet Mixer ```
-  - save ```.pt```, the only learnable parameters in ```Mixer```
-
 
 # License
 

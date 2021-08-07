@@ -26,13 +26,14 @@ data_dir=[Your Path] # "/home/ielab/repos/musdbHQ"
 conda env create -f conda_env_gpu.yaml -n mdx-net
 conda activate mdx-net
 pip install -r requirements.txt
-
 sudo apt-get install soundstretch
 ```
 
 ## 2. Training & Submission
 
-see [README_SUBMISSION.md](README_SUBMISSION.md)
+- [Leaderboard_A](https://github.com/kuielab/mdx-net/tree/Leaderboard_A)
+- [Leaderboard_B](https://github.com/kuielab/mdx-net/tree/Leaderboard_B)
+
 
 # ACKNOWLEDGEMENT
 

@@ -69,9 +69,16 @@
 
 ## How to reproduce the submission
 
-[Leaderboard A](https://gitlab.aicrowd.com/kim_min_seok/demix/tree/submission133)
+***Note***: I don't know why but submission might be failed randomly due to the time limit. you might have to submit it several times.
 
-[Leaderboard B](https://gitlab.aicrowd.com/kim_min_seok/demix/tree/submission106)
+- obtain ```.onnx``` files as described in the [following section](#how-to-reproduce-the-training)
+- or visit the following links that hold the pretrained ```.onnx``` files
+  - [Leaderboard A](https://github.com/kuielab/mdx-net-submission/tree/leaderboard_A)
+  - [Leaderboard B]()
+
+- or visit the submitted repository
+  - [Leaderboard A](https://gitlab.aicrowd.com/kim_min_seok/demix/tree/submission133)
+  - [Leaderboard B](https://gitlab.aicrowd.com/kim_min_seok/demix/tree/submission106)
 
 
 ## How to reproduce the training
@@ -92,11 +99,11 @@
   - bass: ```python run.py experiment=multigpu_bass```
   - other: ```python run.py experiment=multigpu_other model=ConvTDFNet_other```
 
-- for training, each takes at least 3 days, usually 4~5 days.
+- for training, each takes at least 3 days, usually 4~5 days with four ```2080ti```s.
   - this model directly estimates the target complex-valued spectrogram
   - We empirically found that model based on this type of estimation method
     - even if its validation loss converges, its SDR performance can be improved further
-    - thus, we did not use strict earlystopping threshold
+    - thus, we did not use a strict earlystopping [threshold]()
   
 - Default logging system is [wandb](https://www.wandb.com/)
   ![](val_loss_vocals.png)  

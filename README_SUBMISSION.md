@@ -2,7 +2,6 @@
 
 ## Submission Summary
 
-### Leaderboard A
 * Submission ID: 151907
 * Submitter: kim_min_seok
 * Final rank: 2nd place on leaderboard A
@@ -11,18 +10,6 @@
   | SDR_song | SDR_bass | SDR_drums | SDR_other | SDR_vocals |
   | :------: | :------: | :-------: | :-------: | :--------: |
   |   7.24   |   7.23   |   7.17    |   5.64    |    8.90    |
-
-### Leaderboard B
-* Submission ID: 151249
-* Submitter: kim_min_seok
-* Final rank: 3nd place on leaderboard A
-* Final scores on MDXDB21:
-
-
-  | SDR_song | SDR_bass | SDR_drums | SDR_other | SDR_vocals |
-  | :------: | :------: | :-------: | :-------: | :--------: |
-  |   7.37   |   7.50   |   7.55    |   5.53    |    8.90    |
-
 
 ## Model Summary
 
@@ -65,7 +52,7 @@
 
 ***Note***: The inference time is very close to the time limit, so submission will randomly fail. You might have to submit it several times.
 
-- obtain ```.onnx``` files and ```.pt``` file as described in the [following section](#how-to-reproduce-the-training)
+- obtain ```.onnx``` files and ```.ckpt``` file as described in the [following section](#how-to-reproduce-the-training)
 - follow this instruction to deploy parameters
     ```
     git clone https://github.com/kuielab/mdx-net-submission.git
@@ -73,15 +60,13 @@
     git checkout leaderboard_A
     git lfs install
     mv ${*.onnx} onnx/
-    mv ${*.pt} model/  
+    mv ${*.ckpt} model/  
     ```
-- or visit the following links that hold the pretrained ```.onnx``` files and ```.pt``` file
+- or visit the following links that hold the pretrained ```.onnx``` files and ```.ckpt``` file
   - [Leaderboard A](https://github.com/kuielab/mdx-net-submission/tree/leaderboard_A)
-  - [Leaderboard B](https://github.com/kuielab/mdx-net-submission/tree/leaderboard_B)
 
 - or visit the submitted repository
   - [Leaderboard A](https://gitlab.aicrowd.com/kim_min_seok/demix/tree/submission133)
-  - [Leaderboard B](https://gitlab.aicrowd.com/kim_min_seok/demix/tree/submission106)
 
 
 ## How to reproduce the training
@@ -93,8 +78,6 @@ Pitch Shift and Time Stretch [2]
 
 - For Leaderboard A
     - run ```python src/utils/data_augmentation.py --data_dir ${your_musdb_path} --train True --valid False --test False```
-- For Leaderboard B
-    - run ```python src/utils/data_augmentation.py --data_dir ${your_musdb_path} --train True --valid True --test True``` 
 
 ### 2. Phase 1
 
@@ -124,25 +107,23 @@ Pitch Shift and Time Stretch [2]
     - bass: 1720 epoch
     - drums: 600 epoch
     - other: 1720 epoch
-
-- Leaderboard B
-    - vocals: 1960 epoch
-    - bass: 1200 epoch
-    - drums: 940 epoch
-    - other: 1660 epoch
-
+  
 > note: the models were submitted before convergence, and the learning rate might have not been optimal as well (ex. for 'other', Leaderboard A score is higher)
 
-### 3. Phase 2 (Optional)
+### 3. Phase 2
 
 This phase **does not fine-tune** the pretrained separators from the previous phase.
 
 - Train Mixer
-  - locate candidate checkpoints by appending ```ckpt``` variable in the ```yaml``` config file.
-  - train ```from src.models.mdxnet Mixer ```
-  - save ```.pt```, the only learnable parameters in ```Mixer```
-
-
+  - fill pretrained ckpt path for each source in [Mixer.yaml](https://github.com/kuielab/mdx-net/blob/8cabde1cb803b0696ec88570a2e8d113b72d9c55/configs/model/Mixer.yaml#L12)
+  - run ```python run.py experiment=mixer model=Mixer```
+  - Mixer is a very small model
+      - the number of learnable parameters in ```Mixer``` < 100
+      - so we do not use ```onnx``` in this case
+      - , and no need to wait too much time for the convergence (~ 10 epoch).
+  - pick the top ckpt and locate it in the model directory in the [submission repository](https://github.com/kuielab/mdx-net-submission/tree/leaderboard_A/model)
+  
+  
 # License
 
 [MIT Licence](LICENSE.MD)

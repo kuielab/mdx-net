@@ -1,7 +1,15 @@
 _target_: src.datamodules.musdb_datamodule.MusdbDataModule
 
-data_dir: ${data_dir} # data_dir is specified in config.yaml
+# data_dir is specified in config.yaml
+data_dir: ${data_dir}
+
+# chunk_size = (hop_length * (dim_t - 1) / sample_rate) secs
 sample_rate: 44100
+hop_length: ${model.hop_length}   # stft hop_length
+dim_t: ${model.dim_t}  # number of stft frames
+
+# number of overlapping wave samples between chunks when separating a whole track
+overlap: ${model.overlap}
 
 source_names:
   - bass
@@ -10,16 +18,11 @@ source_names:
   - vocals
 target_name: ${model.target_name}
 
-n_fft: ${model.n_fft}
-hop_length: ${model.hop_length}
-dim_c: ${model.dim_c}
-dim_f: ${model.dim_f}
-dim_t: ${model.dim_t}
+external_datasets:
 
 batch_size: 8
 num_workers: 0
 pin_memory: False
-
 
 aug_params:
   - 2   # maximum pitch shift in semitones (-x < shift param < x)

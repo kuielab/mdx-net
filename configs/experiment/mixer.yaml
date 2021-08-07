@@ -1,3 +1,5 @@
+nes (19 sloc)  348 Bytes
+  
 # @package _global_
 
 # to execute this experiment run:
@@ -10,17 +12,15 @@ seed: 2021
 
 logger:
   wandb:
-    name: 'mdx_vocals'
+    name: 'mixer'
 
 trainer:
-  gpus: '0,1,2,3'
+  gpus: '0'
+  max_epochs: 10
+  min_epochs: 1
+  check_val_every_n_epoch: 1
 
 datamodule:
   batch_size: 16
   num_workers: 8
   pin_memory: False
-  overlap: 3072
-
-callbacks:
-  early_stopping:
-    patience: 500

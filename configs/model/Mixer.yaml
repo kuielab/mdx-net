@@ -11,6 +11,7 @@ separator_configs:
 
 dim_t: 256
 hop_length: 1024
+overlap: 8192
 
 # optimizer
 lr: 0.003

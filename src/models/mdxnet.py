@@ -15,7 +15,7 @@ from src.utils.utils import sdr
 class AbstractMDXNet(LightningModule):
     __metaclass__ = ABCMeta
 
-    def __init__(self, target_name, lr, optimizer, dim_c, dim_f, dim_t, n_fft, hop_length):
+    def __init__(self, target_name, lr, optimizer, dim_c, dim_f, dim_t, n_fft, hop_length, overlap, ckpt):
         super().__init__()
         self.target_name = target_name
         self.lr = lr
@@ -28,10 +28,13 @@ class AbstractMDXNet(LightningModule):
         self.hop_length = hop_length
 
         self.chunk_size = hop_length * (self.dim_t - 1)
-        self.overlap = n_fft // 2
+        self.overlap = overlap
         self.window = nn.Parameter(torch.hann_window(window_length=self.n_fft, periodic=True), requires_grad=False)
         self.freq_pad = nn.Parameter(torch.zeros([1, dim_c, self.n_bins - self.dim_f, self.dim_t]), requires_grad=False)
         self.input_sample_shape = (self.stft(torch.zeros([1, 2, self.chunk_size]))).shape
+
+        if ckpt is not None:
+            self.load_from_checkpoint(ckpt)
 
     def configure_optimizers(self):
         if self.optimizer == 'rmsprop':
@@ -47,6 +50,13 @@ class AbstractMDXNet(LightningModule):
 
         return {"loss": loss}
 
+    # Validation SDR is calculated on whole tracks and not chunks since
+    # short inputs have high possibility of being silent (all-zero signal)
+    # which leads to very low sdr values regardless of the model.
+    # A natural procedure would be to split a track into chunk batches and
+    # load them on multiple gpus, but aggregation was too difficult.
+    # So instead we load one whole track on a single device (data_loader batch_size should always be 1)
+    # and do all the batch splitting and aggregation on a single device.
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
         mix_chunk_batches, target = args[0]
 
@@ -85,9 +95,10 @@ class AbstractMDXNet(LightningModule):
 
 class ConvTDFNet(AbstractMDXNet):
     def __init__(self, target_name, lr, optimizer, dim_c, dim_f, dim_t, n_fft, hop_length,
-                 num_blocks, l, g, k, bn, bias):
+                 num_blocks, l, g, k, bn, bias, overlap, ckpt):
 
-        super(ConvTDFNet, self).__init__(target_name, lr, optimizer, dim_c, dim_f, dim_t, n_fft, hop_length)
+        super(ConvTDFNet, self).__init__(
+            target_name, lr, optimizer, dim_c, dim_f, dim_t, n_fft, hop_length, overlap, ckpt)
         self.save_hyperparameters()
 
         self.num_blocks = num_blocks

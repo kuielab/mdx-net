@@ -29,15 +29,14 @@ class MusdbDataModule(LightningDataModule):
             data_dir: str,
             aug_params,
             target_name: str,
-            n_fft: int,
+            overlap: int,
             hop_length: int,
-            dim_c: int,
-            dim_f: int,
             dim_t: int,
             sample_rate: int,
             batch_size: int,
             num_workers: int,
             pin_memory: bool,
+            external_datasets,
             **kwargs,
     ):
         super().__init__()
@@ -45,22 +44,19 @@ class MusdbDataModule(LightningDataModule):
         self.data_dir = Path(data_dir)
         self.target_name = target_name
         self.aug_params = aug_params
+        self.external_datasets = external_datasets
+
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.pin_memory = pin_memory
 
         # audio-related
-        self.n_fft = n_fft
         self.hop_length = hop_length
-        self.dim_c = dim_c
-        self.dim_f = dim_f
-        self.dim_t = dim_t
         self.sample_rate = sample_rate
 
         # derived
-        self.n_bins = n_fft // 2 + 1
         self.chunk_size = hop_length * (dim_t - 1)
-        self.overlap = n_fft // 2
+        self.overlap = overlap
 
         self.data_train: Optional[Dataset] = None
         self.data_val: Optional[Dataset] = None
@@ -85,7 +81,8 @@ class MusdbDataModule(LightningDataModule):
         self.data_train = MusdbTrainDataset(self.data_dir,
                                             self.chunk_size,
                                             self.target_name,
-                                            self.aug_params)
+                                            self.aug_params,
+                                            self.external_datasets)
 
         self.data_val = MusdbValidDataset(self.data_dir,
                                           self.chunk_size,

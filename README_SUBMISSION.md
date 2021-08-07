@@ -77,7 +77,7 @@
     ```
 - or visit the following links that hold the pretrained ```.onnx``` files and ```.pt``` file
   - [Leaderboard A](https://github.com/kuielab/mdx-net-submission/tree/leaderboard_A)
-  - [Leaderboard B]()
+  - [Leaderboard B](https://github.com/kuielab/mdx-net-submission/tree/leaderboard_B)
 
 - or visit the submitted repository
   - [Leaderboard A](https://gitlab.aicrowd.com/kim_min_seok/demix/tree/submission133)
@@ -130,7 +130,8 @@ Pitch Shift and Time Stretch [2]
     - bass: 1200 epoch
     - drums: 940 epoch
     - other: 1660 epoch
-    - note: the models were submitted before convergence, and the learning rate might have not been optimal as well (ex. for 'other', Leaderboard A score is higher)
+
+> note: the models were submitted before convergence, and the learning rate might have not been optimal as well (ex. for 'other', Leaderboard A score is higher)
 
 ### 3. Phase 2 (Optional)
 

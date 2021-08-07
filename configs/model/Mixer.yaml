@@ -2,12 +2,17 @@ _target_: src.models.mdxnet.Mixer
 
 target_name: 'all'
 
-model_cfg_dir: '/home/ielab/PycharmProjects/mdx-net/configs/model/'
 separator_configs:
-  - ConvTDFNet_other.yaml
-  - ConvTDFNet_other.yaml
-  - ConvTDFNet_other.yaml
-  - ConvTDFNet_other.yaml
+  vocals: ${work_dir}/configs/model/ConvTDFNet_vocals.yaml
+  drums: ${work_dir}/configs/model/ConvTDFNet_drums.yaml
+  bass: ${work_dir}/configs/model/ConvTDFNet_bass.yaml
+  other: ${work_dir}/configs/model/ConvTDFNet_other.yaml
+
+separator_ckpts:
+  vocals: null
+  drums: null
+  bass: null
+  other: null
 
 dim_t: 256
 hop_length: 1024

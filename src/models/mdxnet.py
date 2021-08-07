@@ -181,23 +181,27 @@ class ConvTDFNet(AbstractMDXNet):
 
 
 class Mixer(LightningModule):
-    def __init__(self, model_cfg_dir, separator_configs, lr, optimizer, dim_t, hop_length, overlap, target_name='all'):
+    def __init__(self, separator_configs, separator_ckpts, lr, optimizer, dim_t, hop_length, overlap, target_name='all'):
         super().__init__()
         self.save_hyperparameters()
 
         # Load pretrained separators per source
-        self.separators = nn.ModuleList()
-        for cfg in separator_configs:
-            model_config = OmegaConf.load(model_cfg_dir + cfg)
+        self.separators = nn.ModuleDict()
+        for ckpt in separator_ckpts.values():
+            # if failed here, then fill valid ckpt pahts in the given yaml for Mixer training
+            assert ckpt is not None
+
+        for source in separator_configs.keys():
+            model_config = OmegaConf.load(separator_configs[source])
             assert 'ConvTDFNet' in model_config._target_
             separator = ConvTDFNet(**{key: model_config[key] for key in dict(model_config) if key !='_target_'})
-            self.separators.append(separator)
+            separator.load_from_checkpoint(separator_ckpts[source])
+            self.separators[source] = separator
 
         # Freeze
-        for sep in self.separators:
-            with torch.no_grad():
-                for param in sep.parameters():
-                    param.requires_grad = False
+        with torch.no_grad():
+            for param in self.separators.parameters():
+                param.requires_grad = False
 
         self.lr = lr
         self.optimizer = optimizer
@@ -216,7 +220,8 @@ class Mixer(LightningModule):
 
         with torch.no_grad():
             target_wave_hats = []
-            for S in self.separators:
+            for source in ['bass', 'drums', 'other', 'vocals']:
+                S = self.separators[source]
                 target_wave_hat = S.istft(S(S.stft(mix_wave)))
                 target_wave_hats.append(target_wave_hat)  # shape = [source, batch, channel, time]
 
@@ -241,7 +246,8 @@ class Mixer(LightningModule):
         target_hat_chunks = []
         for mix_wave in mix_chunk_batches:
             target_wave_hats = []
-            for S in self.separators:
+            for source in ['bass', 'drums', 'other', 'vocals']:
+                S = self.separators[source]
                 target_wave_hat = S.istft(S(S.stft(mix_wave)))
                 target_wave_hats.append(target_wave_hat)  # shape = [source, batch, channel, time]
             target_wave_hats = torch.stack(target_wave_hats).transpose(0, 1)

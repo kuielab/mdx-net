@@ -47,7 +47,6 @@ class AbstractMDXNet(LightningModule):
 
         return {"loss": loss}
 
-
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
         mix_chunk_batches, target = args[0]
 
@@ -175,6 +174,7 @@ class Mixer(LightningModule):
         super().__init__()
         self.save_hyperparameters()
 
+        # Load pretrained separators per source
         self.separators = []
         for cfg in separator_configs:
             model_config = OmegaConf.load(model_cfg_dir + cfg)

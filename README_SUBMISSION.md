@@ -71,8 +71,8 @@
 
 ***Note***: I don't know why but submission might be failed randomly due to the time limit. you might have to submit it several times.
 
-- obtain ```.onnx``` files as described in the [following section](#how-to-reproduce-the-training)
-- or visit the following links that hold the pretrained ```.onnx``` files
+- obtain ```.onnx``` files and ```.pt``` file as described in the [following section](#how-to-reproduce-the-training)
+- or visit the following links that hold the pretrained ```.onnx``` files and ```.pt``` file
   - [Leaderboard A](https://github.com/kuielab/mdx-net-submission/tree/leaderboard_A)
   - [Leaderboard B]()
 

@@ -2,9 +2,20 @@
 
 ## Submission Summary
 
+### Leaderboard A
 * Submission ID: 151907
 * Submitter: kim_min_seok
 * Final rank: 2nd place on leaderboard A
+* Final scores on MDXDB21:
+
+  | SDR_song | SDR_bass | SDR_drums | SDR_other | SDR_vocals |
+  | :------: | :------: | :-------: | :-------: | :--------: |
+  |   7.37   |   7.50   |   7.55    |   5.53    |    8.90    |
+
+### Leaderboard B
+* Submission ID: 151249
+* Submitter: kim_min_seok
+* Final rank: 3nd place on leaderboard A
 * Final scores on MDXDB21:
 
   | SDR_song | SDR_bass | SDR_drums | SDR_other | SDR_vocals |
@@ -63,9 +74,13 @@
 
 ## How to reproduce the training
 
-### 1. Data Augmentation
+### 1. Data Preparation
 
-run ```src/utils/data_augmentation.py```
+1. Data Augmentation [2]
+   - run ```src/utils/data_augmentation.py```
+
+2. (for Leaderboard B only)
+  - training with test dataset as well
 
 ### 2. Phase 1.
 
@@ -77,11 +92,12 @@ run ```src/utils/data_augmentation.py```
 
 - for training, each takes at least 3 days.
 
-### Phase 2
+### 3. Phase 2
 
 - Train Mixer
   - locate candidate checkpoints by appending ```ckpt``` variable in the ```yaml``` config file.
   - train ```from src.models.mdxnet Mixer ```
+
 
 # License
 

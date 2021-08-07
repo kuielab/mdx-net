@@ -16,7 +16,7 @@
 ## Model Summary
 
 * Data
-  * We used the MusDB default 86/14 train and validation splits.
+  * We used 136 tracks from MusDB (train 86 + test 50) and default 14 track validation split.
   * Augmentation
     * Random chunking and mixing sources from different tracks ([1])
     * Pitch shift and time stretch ([2])
@@ -31,11 +31,8 @@
       * No densely connected convolutional blocks
       * Multiplicative skip connections
       * Increased depth and number of hidden channels
-    * After training the per-source models we trained an additional network (which we call the 'Mixer') on top of the model outputs, which takes all four estimated sources as input and outputs better estimated sources
-      * We only tried a single 1x1 convolution layer for the Mixer (due to inference time limit), but still gained at least 0.1 SDR for every source on the MDX test set.
-      * Mixer is trained without fine-tuning the separation models.
   * Demucs
-    * we used the pretrained model with 64 initial hidden channels (not demucs48_hq)
+    * we used the pretrained model with extra data (demucs_extra)
     * overlap=0.5 and no shift trick
   * blending parameters (TFC-TDF : Demucs) => bass 5:5, drums 5:5, other 7:3, vocals 9:1
 
@@ -105,10 +102,10 @@ Pitch Shift and Time Stretch [2]
 #### The epoch of each checkpoint we used  
 
 - Leaderboard B
-    - vocals: 1960 epoch
-    - bass: 1200 epoch
-    - drums: 940 epoch
-    - other: 1660 epoch
+    - vocals: 1260 epoch
+    - bass: 700 epoch
+    - drums: 580 epoch
+    - other: 740 epoch
 
 > note: the models were submitted before convergence, and the learning rate might have not been optimal as well (ex. for 'other', Leaderboard A score is higher)
 

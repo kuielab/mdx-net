@@ -51,7 +51,7 @@
 
 ***Note***: The inference time is very close to the time limit, so submission will randomly fail. You might have to submit it several times.
 
-- obtain ```.onnx``` files and ```.pt``` file as described in the [following section](#how-to-reproduce-the-training)
+- obtain ```.onnx``` files as described in the [following section](#how-to-reproduce-the-training)
 - follow this instruction to deploy parameters
     ```
     git clone https://github.com/kuielab/mdx-net-submission.git
@@ -60,7 +60,7 @@
     git lfs install
     mv ${*.onnx} onnx/
     ```
-- or visit the following links that hold the pretrained ```.onnx``` files and ```.pt``` file
+- or visit the following links that hold the pretrained ```.onnx``` files.
   - [Leaderboard B](https://github.com/kuielab/mdx-net-submission/tree/leaderboard_B)
 
 - or visit the submitted repository
@@ -98,6 +98,10 @@ Pitch Shift and Time Stretch [2]
   - This function was implemented as a callback function
     - see [this](https://github.com/kuielab/mdx-net/blob/7c6f7daecde13c0e8ed97f308577f6690b0c31af/configs/callbacks/default.yaml#L18)
     - and [this](https://github.com/kuielab/mdx-net/blob/7c6f7daecde13c0e8ed97f308577f6690b0c31af/src/callbacks/onnx_callback.py#L11)
+
+### 3. Phase 2
+
+We did not train ```Mixer``` for the model used in Leaderboard B.
 
 #### The epoch of each checkpoint we used  
 

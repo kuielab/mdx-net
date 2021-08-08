@@ -30,8 +30,7 @@
       * Multiplicative skip connections
       * Increased depth and number of hidden channels
     * After training the per-source models we trained an additional network (which we call the 'Mixer') on top of the model outputs, which takes all four estimated sources as input and outputs better estimated sources
-      * We only tried a single 1x1 convolution layer for the Mixer (due to inference time limit), but still gained at least 0.1 SDR for every source on the MDX test set.
-      * Mixer is trained without fine-tuning the separation models.
+      * We only tried a single 1x1 convolution layer for the Mixer (due to inference time limit), but still gained at least 0.1 SDR for every source on MDXDB21.
   * Demucs
     * we used the pretrained model with 64 initial hidden channels (not demucs48_hq)
     * overlap=0.5 and no shift trick
@@ -104,11 +103,10 @@ Pitch Shift and Time Stretch [2]
 - After training the 4 models, rename the best ```.onnx``` files to '{source_name}.onnx' for each source ('vocals.onnx', 'bass.onnx', etc.), then copy them to the 'onnx' directory in the [submission repository](https://github.com/kuielab/mdx-net-submission/tree/leaderboard_A/model)
 
 #### The epoch of each checkpoint we used  
-- Leaderboard A
-    - vocals: 2360 epoch
-    - bass: 1720 epoch
-    - drums: 600 epoch
-    - other: 1720 epoch
+  - vocals: 2360 epoch
+  - bass: 1720 epoch
+  - drums: 600 epoch
+  - other: 1720 epoch
 
 ### 3. Phase 2
 

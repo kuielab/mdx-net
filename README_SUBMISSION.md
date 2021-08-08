@@ -31,6 +31,7 @@
       * No densely connected convolutional blocks
       * Multiplicative skip connections
       * Increased depth and number of hidden channels
+    > note: our final submission for leaderboard B was submitted before training converged, and the learning rate might have not been optimal as well. Furthermore, the bass separation model doesn't even use external data.
   * Demucs
     * we used the pretrained model with extra data (demucs_extra)
     * overlap=0.5 and no shift trick
@@ -98,8 +99,6 @@ Pitch Shift and Time Stretch [2]
     - and [this](https://github.com/kuielab/mdx-net/blob/7c6f7daecde13c0e8ed97f308577f6690b0c31af/src/callbacks/onnx_callback.py#L11)
 
 - After training the 4 models, rename the best ```.onnx``` files to '{source_name}.onnx' for each source ('vocals.onnx', 'bass.onnx', etc.), then copy them to the 'onnx' directory in the [submission repository](https://github.com/kuielab/mdx-net-submission/tree/leaderboard_B/model)
-
-> note: our final submission for leaderboard B was submitted before training converged, and the learning rate might have not been optimal as well (ex. for 'other', Leaderboard A score is higher). Furthermore, the bass separation model doesn't even use external data.
 
 ### 3. Phase 2
 

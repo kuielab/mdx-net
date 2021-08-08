@@ -97,19 +97,13 @@ Pitch Shift and Time Stretch [2]
     - see [this](https://github.com/kuielab/mdx-net/blob/7c6f7daecde13c0e8ed97f308577f6690b0c31af/configs/callbacks/default.yaml#L18)
     - and [this](https://github.com/kuielab/mdx-net/blob/7c6f7daecde13c0e8ed97f308577f6690b0c31af/src/callbacks/onnx_callback.py#L11)
 
+- After training the 4 models, rename the best ```.onnx``` files to '{source_name}.onnx' for each source ('vocals.onnx', 'bass.onnx', etc.), then copy them to the 'onnx' directory in the [submission repository](https://github.com/kuielab/mdx-net-submission/tree/leaderboard_B/model)
+
+> note: our final submission for leaderboard B was submitted before training converged, and the learning rate might have not been optimal as well (ex. for 'other', Leaderboard A score is higher). Furthermore, the bass separation model doesn't even use external data.
+
 ### 3. Phase 2
 
 We did not train ```Mixer``` for the model used in Leaderboard B.
-
-#### The epoch of each checkpoint we used  
-
-- Leaderboard B
-    - vocals: 1260 epoch
-    - bass: 700 epoch
-    - drums: 580 epoch
-    - other: 740 epoch
-
-> note: the models were submitted before convergence, and the learning rate might have not been optimal as well (ex. for 'other', Leaderboard A score is higher)
 
 # License
 

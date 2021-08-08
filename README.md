@@ -21,7 +21,7 @@ data_dir=[Your Path] # "/home/ielab/repos/musdbHQ"
    - the ***absolute*** path where datasets are stored
 
 ## 1. Installation
-
+(conda env create takes about 5~10 mins)
 ```bash
 conda env create -f conda_env_gpu.yaml -n mdx-net
 conda activate mdx-net

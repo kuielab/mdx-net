@@ -75,7 +75,7 @@ Pitch Shift and Time Stretch [2]
 - This could have been done on-the-fly along with chunking and mixing ([1]), but we preferred faster train steps over less disk usage. The following scripts are for saving augmented tracks to disk before training. 
 
 - For Leaderboard B
-    - run ```python src/utils/data_augmentation.py --data_dir ${your_musdb_path} --train True --valid True --test True``` 
+    - run ```python src/utils/data_augmentation.py --data_dir ${your_musdb_path} --train True --test True``` 
 
 ### 2. Phase 1
 
@@ -83,9 +83,7 @@ Pitch Shift and Time Stretch [2]
   - vocals: ```python run.py experiment=multigpu_vocals model=ConvTDFNet_vocals```
   - drums: ```python run.py experiment=multigpu_drums model=ConvTDFNet_drums```
   - bass: ```python run.py experiment=multigpu_bass model=ConvTDFNet_bass```
-  - other: ```python run.py experiment=multigpu_other model=ConvTDFNet_other```
-
-- For training, each takes at least 3 days, usually 4~5 days to early-stop for the current configurations. 
+  - other: ```python run.py experiment=multigpu_other model=ConvTDFNet_other``` 
   
 - Default logging system is [wandb](https://www.wandb.com/)
   ![](val_loss_vocals.png)  

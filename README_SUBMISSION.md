@@ -121,7 +121,7 @@ This phase **does not fine-tune** the pretrained separators from the previous ph
       - the number of learnable parameters in ```Mixer``` < 100
       - so we do not use ```onnx``` in this case
       - , and no need to wait too much for the convergence (~ 10 epoch).
-  - pick the top Mixer ckpt and locate it in the 'model' directory in the [submission repository](https://github.com/kuielab/mdx-net-submission/tree/leaderboard_A/model)
+  - pick the top Mixer ckpt and rename it to 'mixer.pt', then copy it to the 'model' directory in the [submission repository](https://github.com/kuielab/mdx-net-submission/tree/leaderboard_A/model)
   
   
 # License

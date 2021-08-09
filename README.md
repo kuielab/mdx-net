@@ -38,4 +38,5 @@ sudo apt-get install soundstretch
 # ACKNOWLEDGEMENT
 
 - This repository is based on [Lightning-Hydra Template](https://github.com/ashleve/lightning-hydra-template)
+- Repository of [TFC-TDF-U-Net](https://github.com/ws-choi/ISMIR2020_U_Nets_SVS), our previous ISMIR 2020 paper 
 - Also, facebook/[demucs](https://github.com/facebookresearch/demucs)

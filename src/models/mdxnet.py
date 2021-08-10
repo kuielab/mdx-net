@@ -34,8 +34,12 @@ class AbstractMDXNet(LightningModule):
         self.input_sample_shape = (self.stft(torch.zeros([1, 2, self.chunk_size]))).shape
 
     def configure_optimizers(self):
+        optimizer = torch.optim.Adam(self.parameters(), self.lr)
         if self.optimizer == 'rmsprop':
-            return torch.optim.RMSprop(self.parameters(), self.lr)
+            optimizer = torch.optim.RMSprop(self.parameters(), self.lr)
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,
+                    mode='max', factor=0.9, patience=100, threshold=0.05, threshold_mode='abs')
+        return {'optimizer': optimizer, 'lr_scheduler': scheduler, 'monitor': 'val/sdr'}
 
     def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
         mix_wave, target_wave = args[0]
@@ -73,7 +77,7 @@ class AbstractMDXNet(LightningModule):
         score = sdr(target_hat.detach().cpu().numpy(), target.cpu().numpy())
         self.log("val/sdr", score, sync_dist=True, on_step=False, on_epoch=True, logger=True)
 
-        return {'loss': score}
+        return {'val/sdr': score}
 
     def stft(self, x):
         x = x.reshape([-1, self.chunk_size])

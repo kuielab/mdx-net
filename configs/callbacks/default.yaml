@@ -18,3 +18,7 @@ early_stopping:
 make_onnx:
   _target_: src.callbacks.onnx_callback.MakeONNXCallback
   dirpath: "onnx/"
+
+lr_monitor:
+  _target_: pytorch_lightning.callbacks.LearningRateMonitor
+  logging_interval: "epoch"

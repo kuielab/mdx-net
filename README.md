@@ -40,7 +40,7 @@ see [README_SUBMISSION.md](README_SUBMISSION.md)
 
 - Ubuntu 20.04
 - at least four cuda-able GPUs (each >= 2080ti)
-- 1.5 TB disk storage for data augmentation
+- 1 TB disk storage for data augmentation
 - wandb for logging
 
 Also, you ***must*** create .env file by copying .env.sample to set environmental variables.

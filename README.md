@@ -3,7 +3,7 @@
 ## 0. Environment
 
 - Ubuntu 20.04
-- at least four cuda-able GPUs (each > 2080ti)
+- at least four cuda-able GPUs (each >= 2080ti)
 - 1.5 TB disk storage for data augmentation
 - wandb for logging
 

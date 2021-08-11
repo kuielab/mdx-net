@@ -3,6 +3,7 @@ import subprocess as sp
 import tempfile
 import warnings
 from argparse import ArgumentParser
+from ast import literal_eval
 
 import numpy as np
 import soundfile as sf
@@ -104,7 +105,7 @@ def load_wav(path, sr=None):
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--data_dir', type=str)
-    parser.add_argument('--train', type=bool, default=True)
-    parser.add_argument('--test', type=bool, default=False)
+    parser.add_argument('--train', default=True, type=literal_eval)
+    parser.add_argument('--test', default=False, type=literal_eval)
 
     main(parser.parse_args())

@@ -34,6 +34,11 @@ sudo apt-get install soundstretch
 - [Leaderboard_A](https://github.com/kuielab/mdx-net/tree/Leaderboard_A)
 - [Leaderboard_B](https://github.com/kuielab/mdx-net/tree/Leaderboard_B)
 
+## 3. Leaderboard A vs Leaderboard B
+
+- The main difference between the branch [Leaderboard_A](https://github.com/kuielab/mdx-net/tree/Leaderboard_A) and [Leaderboard_B](https://github.com/kuielab/mdx-net/tree/Leaderboard_B) is the usage of the test dataset of Musdb18.
+   - Leaderboard A does not use test dataset for training: https://github.com/kuielab/mdx-net/blob/Leaderboard_A/configs/experiment/multigpu_default.yaml
+   - Leaderboard B uses test dataset for training: https://github.com/kuielab/mdx-net/blob/b45eff172928dc9fc31852ee65072fb01f4c2d08/configs/experiment/multigpu_default.yaml#L16
 
 # ACKNOWLEDGEMENT
 

@@ -7,6 +7,7 @@ from argparse import ArgumentParser
 import numpy as np
 import soundfile as sf
 import torch
+from pathlib import Path
 from tqdm import tqdm
 
 warnings.simplefilter(action='ignore', category=Warning)
@@ -14,22 +15,20 @@ source_names = ['vocals', 'drums', 'bass', 'other']
 sample_rate = 44100
 
 def main (args):
-    data_dir = args.data_dir
+    data_dir = Path(args.data_dir)
     train = args.train
     test = args.test
-    musdb_train_path = data_dir + 'train/'
-    musdb_test_path = data_dir + 'test/'
 
-    P = [-3, -2, -1, 0, 1, 2, 3]   # pitch shift amounts (in semitones)
-    T = [-30, -20, -10, 0, 10, 20, 30]   # time stretch amounts (10 means 10% slower)
+    P = [-2, -1, 0, 1, 2]   # pitch shift amounts (in semitones)
+    T = [-20, -10, 0, 10, 20]   # time stretch amounts (10 means 10% slower)
 
     for p in P:
         for t in T:
             if not (p==0 and t==0):
                 if train:
-                    save_shifted_dataset(p, t, musdb_train_path)
+                    save_shifted_dataset(p, t, data_dir, 'train')
                 if test:
-                    save_shifted_dataset(p, t, musdb_test_path)
+                    save_shifted_dataset(p, t, data_dir, 'test')
 
 
 def shift(wav, pitch, tempo, voice=False, quick=False, samplerate=44100):
@@ -76,26 +75,26 @@ def shift(wav, pitch, tempo, voice=False, quick=False, samplerate=44100):
     return wav
 
 
-def save_shifted_dataset(delta_pitch, delta_tempo, data_path):
-    out_path = data_path[:-1] + f'_p={delta_pitch}_t={delta_tempo}/'
-    try:
-        os.mkdir(out_path)
-    except FileExistsError:
-        pass
-    track_names = list(filter(lambda x: os.path.isdir(f'{data_path}/{x}'), sorted(os.listdir(data_path))))
+def save_shifted_dataset(delta_pitch, delta_tempo, data_dir, split):
+    aug_split = split + f'_p={delta_pitch}_t={delta_tempo}'
+    in_dir = data_dir.joinpath(split)
+    out_dir = data_dir.joinpath(aug_split)
+    if not out_dir.exists():
+        os.mkdir(out_dir)
+    track_names = os.listdir(in_dir)
     for track_name in tqdm(track_names):
-        try:
-            os.mkdir(f'{out_path}/{track_name}')
-        except FileExistsError:
-            pass
+        in_path = in_dir.joinpath(track_name)
+        out_path = out_dir.joinpath(track_name)
+        if not out_path.exists():
+            os.mkdir(out_path)
         for s_name in source_names:
-            source = load_wav(f'{data_path}/{track_name}/{s_name}.wav')
+            source = load_wav(in_path.joinpath(s_name+'.wav'))
             shifted = shift(
                 torch.tensor(source),
                 delta_pitch,
                 delta_tempo,
                 voice=s_name == 'vocals')
-            sf.write(f'{out_path}/{track_name}/{s_name}.wav', shifted, samplerate=sample_rate, format='WAV')
+            sf.write(out_path.joinpath(s_name+'.wav'), shifted, samplerate=sample_rate, format='WAV')
 
 
 def load_wav(path, sr=None):

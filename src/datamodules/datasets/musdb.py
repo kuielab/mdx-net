@@ -46,7 +46,7 @@ class MusdbDataset(Dataset):
 
 
 class MusdbTrainDataset(MusdbDataset):
-    def __init__(self, data_dir, chunk_size, target_name, aug_params, external_datasets):
+    def __init__(self, data_dir, valid_track_names, chunk_size, target_name, aug_params, external_datasets):
         super(MusdbTrainDataset, self).__init__(data_dir, chunk_size)
 
         self.target_name = target_name
@@ -81,9 +81,10 @@ class MusdbTrainDataset(MusdbDataset):
                 print('creating metadata for', dataset)
                 metadata = []
                 for track_name in sorted(os.listdir(dataset)):
-                    track_path = dataset.joinpath(track_name)
-                    track_length = load_wav(track_path.joinpath('vocals.wav')).shape[-1]
-                    metadata.append((track_path, track_length))
+                    if track_name not in valid_track_names:
+                        track_path = dataset.joinpath(track_name)
+                        track_length = load_wav(track_path.joinpath('vocals.wav')).shape[-1]
+                        metadata.append((track_path, track_length))
                 torch.save(metadata, metadata_cache)
 
             self.metadata += metadata

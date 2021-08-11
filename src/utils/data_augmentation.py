@@ -14,16 +14,11 @@ source_names = ['vocals', 'drums', 'bass', 'other']
 sample_rate = 44100
 
 def main (args):
-    data_root = args.data_dir
+    data_dir = args.data_dir
     train = args.train
     test = args.test
-    valid = args.valid
-
-    musdb_train_path = data_root + 'train/'
-    musdb_test_path = data_root + 'test/'
-    musdb_valid_path = data_root + 'valid/'
-
-    mix_name = 'mixture'
+    musdb_train_path = data_dir + 'train/'
+    musdb_test_path = data_dir + 'test/'
 
     P = [-3, -2, -1, 0, 1, 2, 3]   # pitch shift amounts (in semitones)
     T = [-30, -20, -10, 0, 10, 20, 30]   # time stretch amounts (10 means 10% slower)
@@ -33,8 +28,6 @@ def main (args):
             if not (p==0 and t==0):
                 if train:
                     save_shifted_dataset(p, t, musdb_train_path)
-                if valid:
-                    save_shifted_dataset(p, t, musdb_valid_path)
                 if test:
                     save_shifted_dataset(p, t, musdb_test_path)
 
@@ -113,7 +106,6 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--data_dir', type=str)
     parser.add_argument('--train', type=bool, default=True)
-    parser.add_argument('--valid', type=bool, default=False)
     parser.add_argument('--test', type=bool, default=False)
 
     main(parser.parse_args())

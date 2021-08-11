@@ -118,7 +118,7 @@ class MusdbTrainDataset(MusdbDataset):
 
 class MusdbValidDataset(MusdbDataset):
 
-    def __init__(self, data_dir, chunk_size, target_name, overlap, batch_size):
+    def __init__(self, data_dir, valid_track_names, chunk_size, target_name, overlap, batch_size):
         super(MusdbValidDataset, self).__init__(data_dir, chunk_size)
 
         self.target_name = target_name
@@ -127,9 +127,7 @@ class MusdbValidDataset(MusdbDataset):
         self.overlap = overlap
         self.batch_size = batch_size
 
-        musdb_valid_path = self.musdb_path.joinpath('valid')
-        self.track_paths = [musdb_valid_path.joinpath(track_name)
-                            for track_name in os.listdir(musdb_valid_path)]
+        self.track_paths = [data_dir.joinpath('train/'+track_name) for track_name in valid_track_names]
 
     def __getitem__(self, index):
         mix = load_wav(self.track_paths[index].joinpath('mixture.wav'))

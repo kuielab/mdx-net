@@ -63,19 +63,9 @@ class MusdbDataModule(LightningDataModule):
         self.data_test: Optional[Dataset] = None
 
         self.valid_track_names = kwargs['validation_set']
-        trainset_path = self.data_dir.joinpath('train')
-        validset_path = self.data_dir.joinpath('valid')
 
-        # create validation split
-        if not exists(validset_path):
-            from shutil import move
-            os.mkdir(validset_path)
-            for track in self.valid_track_names:
-                if trainset_path.joinpath(track).exists():
-                    move(trainset_path.joinpath(track), validset_path.joinpath(track))
-        else:
-            valid_files = os.listdir(validset_path)
-            assert set(valid_files) == set(kwargs['validation_set'])
+        for track in self.valid_track_names:
+            assert self.data_dir.joinpath('train/'+track).exists()
 
     def setup(self, stage: Optional[str] = None):
         """Load data. Set variables: self.data_train, self.data_val, self.data_test."""
@@ -87,6 +77,7 @@ class MusdbDataModule(LightningDataModule):
                                             self.external_datasets)
 
         self.data_val = MusdbValidDataset(self.data_dir,
+                                          self.valid_track_names,
                                           self.chunk_size,
                                           self.target_name,
                                           self.overlap,

@@ -15,12 +15,9 @@ logger:
 trainer:
   gpus: '0'
   max_epochs: 10
-  min_epochs: 1
   check_val_every_n_epoch: 1
 
 datamodule:
   batch_size: 16
   num_workers: 8
   pin_memory: False
-  external_datasets:
-    - test

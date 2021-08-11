@@ -30,8 +30,7 @@
       * Multiplicative skip connections
       * Increased depth and number of hidden channels
     * After training the per-source models we trained an additional network (which we call the 'Mixer') on top of the model outputs, which takes all four estimated sources as input and outputs better estimated sources
-      * We only tried a single 1x1 convolution layer for the Mixer (due to inference time limit), but still gained at least 0.1 SDR for every source on the MDX test set.
-      * Mixer is trained without fine-tuning the separation models.
+      * We only tried a single 1x1 convolution layer for the Mixer (due to inference time limit), but still gained at least 0.1 SDR for every source on MDXDB21.
   * Demucs
     * we used the pretrained model with 64 initial hidden channels (not demucs48_hq)
     * overlap=0.5 and no shift trick
@@ -77,7 +76,7 @@ Pitch Shift and Time Stretch [2]
 - This could have been done on-the-fly along with chunking and mixing ([1]), but we preferred faster train steps over less disk usage. The following scripts are for saving augmented tracks to disk before training. 
 
 - For Leaderboard A
-    - run ```python src/utils/data_augmentation.py --data_dir ${your_musdb_path} --train True --valid False --test False```
+    - run ```python src/utils/data_augmentation.py --data_dir ${your_musdb_path} --train True --test False```
 
 ### 2. Phase 1
 
@@ -101,27 +100,26 @@ Pitch Shift and Time Stretch [2]
     - see [this](https://github.com/kuielab/mdx-net/blob/7c6f7daecde13c0e8ed97f308577f6690b0c31af/configs/callbacks/default.yaml#L18)
     - and [this](https://github.com/kuielab/mdx-net/blob/7c6f7daecde13c0e8ed97f308577f6690b0c31af/src/callbacks/onnx_callback.py#L11)
 
+- After training the 4 models, rename the best ```.onnx``` files to '{source_name}.onnx' for each source ('vocals.onnx', 'bass.onnx', etc.), then copy them to the 'onnx' directory in the [submission repository](https://github.com/kuielab/mdx-net-submission/tree/leaderboard_A/model)
+
 #### The epoch of each checkpoint we used  
-- Leaderboard A
-    - vocals: 2360 epoch
-    - bass: 1720 epoch
-    - drums: 600 epoch
-    - other: 1720 epoch
-  
-> note: the models were submitted before convergence, and the learning rate might have not been optimal as well (ex. for 'other', Leaderboard A score is higher)
+  - vocals: 2360 epoch
+  - bass: 1720 epoch
+  - drums: 600 epoch
+  - other: 1720 epoch
 
 ### 3. Phase 2
 
 This phase **does not fine-tune** the pretrained separators from the previous phase.
 
 - Train Mixer
-  - fill pretrained ckpt path for each source in [Mixer.yaml](https://github.com/kuielab/mdx-net/blob/8cabde1cb803b0696ec88570a2e8d113b72d9c55/configs/model/Mixer.yaml#L12)
+  - fill in the pretrained ckpt path for each source in [Mixer.yaml](https://github.com/kuielab/mdx-net/blob/8cabde1cb803b0696ec88570a2e8d113b72d9c55/configs/model/Mixer.yaml#L12)
   - run ```python run.py experiment=mixer model=Mixer```
   - Mixer is a very small model
       - the number of learnable parameters in ```Mixer``` < 100
       - so we do not use ```onnx``` in this case
-      - , and no need to wait too much time for the convergence (~ 10 epoch).
-  - pick the top ckpt and locate it in the model directory in the [submission repository](https://github.com/kuielab/mdx-net-submission/tree/leaderboard_A/model)
+      - , and no need to wait too much for the convergence (~ 10 epoch).
+  - pick the top Mixer ckpt and rename it to 'mixer.pt', then copy it to the 'model' directory in the [submission repository](https://github.com/kuielab/mdx-net-submission/tree/leaderboard_A/model)
   
   
 # License

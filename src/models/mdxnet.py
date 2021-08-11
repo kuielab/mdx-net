@@ -36,6 +36,8 @@ class AbstractMDXNet(LightningModule):
     def configure_optimizers(self):
         if self.optimizer == 'rmsprop':
             return torch.optim.RMSprop(self.parameters(), self.lr)
+        else:
+            return torch.optim.Adam(self.parameters(), self.lr)
 
     def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
         mix_wave, target_wave = args[0]

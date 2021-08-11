@@ -26,15 +26,17 @@ data_dir=[Your Path] # "/home/ielab/repos/musdbHQ"
 conda env create -f conda_env_gpu.yaml -n mdx-net
 conda activate mdx-net
 pip install -r requirements.txt
-
 sudo apt-get install soundstretch
 ```
 
 ## 2. Training & Submission
 
-see [README_SUBMISSION.md](README_SUBMISSION.md)
+- [Leaderboard_A](https://github.com/kuielab/mdx-net/tree/Leaderboard_A)
+- [Leaderboard_B](https://github.com/kuielab/mdx-net/tree/Leaderboard_B)
+
 
 # ACKNOWLEDGEMENT
 
 - This repository is based on [Lightning-Hydra Template](https://github.com/ashleve/lightning-hydra-template)
+- Repository of [TFC-TDF-U-Net](https://github.com/ws-choi/ISMIR2020_U_Nets_SVS), our previous ISMIR 2020 paper 
 - Also, facebook/[demucs](https://github.com/facebookresearch/demucs)

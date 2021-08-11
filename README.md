@@ -67,8 +67,7 @@ sudo apt-get install soundstretch
 
 ## 2. Training & Submission
 
-- [Leaderboard_A](https://github.com/kuielab/mdx-net/tree/Leaderboard_A)
-- [Leaderboard_B](https://github.com/kuielab/mdx-net/tree/Leaderboard_B)
+see [README_SUBMISSION.md](README_SUBMISSION.md)
 
 ## 3. Leaderboard A vs Leaderboard B
 

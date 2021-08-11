@@ -77,6 +77,7 @@ Pitch Shift and Time Stretch [2]
 
 - For Leaderboard A
     - run ```python src/utils/data_augmentation.py --data_dir ${your_musdb_path} --train True --test False```
+    - (takes 2~3 hours)
 
 ### 2. Phase 1
 

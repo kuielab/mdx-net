@@ -1,5 +1,7 @@
 # KUIELab-MDX-Net
 
+- [presentation slide](https://ws-choi.github.io/personal/presentations/slide/2021-08-21-aicrowd)
+
 ## 0. Environment
 
 - Ubuntu 20.04

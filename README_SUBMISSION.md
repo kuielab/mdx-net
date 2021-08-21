@@ -30,6 +30,8 @@
       * Multiplicative skip connections
       * Increased depth and number of hidden channels
     * After training the per-source models we trained an additional network (which we call the 'Mixer') on top of the model outputs, which takes all four estimated sources as input and outputs better estimated sources
+      * We thought an additional network on top of the estimated sources could force the four estimated sources to compensate each other. 
+      * This may be useful for enhancing per-source models.
       * We only tried a single 1x1 convolution layer for the Mixer (due to inference time limit), but still gained at least 0.1 SDR for every source on MDXDB21.
   * Demucs
     * we used the pretrained model with 64 initial hidden channels (not demucs48_hq)

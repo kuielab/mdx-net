@@ -10,7 +10,7 @@ seed: 2021
 
 logger:
   wandb:
-    name: 'mdx_bass'
+    name: 'mdx_bass_val5'
 
 trainer:
   gpus: '2,3'

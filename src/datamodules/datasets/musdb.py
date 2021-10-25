@@ -56,8 +56,7 @@ class MusdbTrainDataset(MusdbDataset):
             os.mkdir(self.musdb_path.joinpath('metadata'))
 
         splits = ['train']
-        if external_datasets is not None:
-            splits += external_datasets
+        splits += external_datasets
 
         # collect paths for datasets and metadata (track names and duration)
         datasets, metadata_caches = [], []

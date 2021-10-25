@@ -10,13 +10,13 @@ seed: 2021
 
 logger:
   wandb:
-    name: 'mdx_vocals'
+    name: 'mdx_vocals_val5'
 
 trainer:
-  gpus: '0,1,2,3'
+  gpus: '0,1'
 
 datamodule:
-  batch_size: 16
+  batch_size: 8
   num_workers: 8
   pin_memory: False
   overlap: 3072

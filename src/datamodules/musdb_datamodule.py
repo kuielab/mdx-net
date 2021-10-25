@@ -44,7 +44,7 @@ class MusdbDataModule(LightningDataModule):
         self.data_dir = Path(data_dir)
         self.target_name = target_name
         self.aug_params = aug_params
-        self.external_datasets = external_datasets
+        self.external_datasets = external_datasets if external_datasets is not None else []
 
         self.batch_size = batch_size
         self.num_workers = num_workers

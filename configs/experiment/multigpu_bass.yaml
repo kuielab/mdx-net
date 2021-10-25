@@ -13,7 +13,7 @@ logger:
     name: 'mdx_bass'
 
 trainer:
-  gpus: '0,1,2'
+  gpus: '2,3'
 
 datamodule:
   batch_size: 8

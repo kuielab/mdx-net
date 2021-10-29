@@ -31,7 +31,7 @@ class AbstractMDXNet(LightningModule):
         self.inference_chunk_size = hop_length * (self.dim_t*2 - 1)
         self.overlap = overlap
         self.window = nn.Parameter(torch.hann_window(window_length=self.n_fft, periodic=True), requires_grad=False)
-        self.freq_pad = nn.Parameter(torch.zeros([1, dim_c, self.n_bins - self.dim_f, self.dim_t]), requires_grad=False)
+        self.freq_pad = nn.Parameter(torch.zeros([1, dim_c, self.n_bins - self.dim_f, 1]), requires_grad=False)
         self.inference_chunk_shape = (self.stft(torch.zeros([1, 2, self.inference_chunk_size]))).shape
 
     def configure_optimizers(self):
@@ -79,7 +79,7 @@ class AbstractMDXNet(LightningModule):
     def stft(self, x):
         dim_b = x.shape[0]
         x = x.reshape([dim_b * 2, -1])
-        x = torch.stft(x, n_fft=self.n_fft, hop_length=self.hop, window=self.window, center=True)
+        x = torch.stft(x, n_fft=self.n_fft, hop_length=self.hop_length, window=self.window, center=True)
         x = x.permute([0, 3, 1, 2])
         x = x.reshape([dim_b, 2, 2, self.n_bins, -1]).reshape([dim_b, self.dim_c, self.n_bins, -1])
         return x[:, :, :self.dim_f]
@@ -89,7 +89,7 @@ class AbstractMDXNet(LightningModule):
         x = torch.cat([x, self.freq_pad.repeat([x.shape[0], 1, 1, x.shape[-1]])], -2)
         x = x.reshape([dim_b, 2, 2, self.n_bins, -1]).reshape([dim_b * 2, 2, self.n_bins, -1])
         x = x.permute([0, 2, 3, 1])
-        x = torch.istft(x, n_fft=self.n_fft, hop_length=self.hop, window=self.window, center=True)
+        x = torch.istft(x, n_fft=self.n_fft, hop_length=self.hop_length, window=self.window, center=True)
         return x.reshape([dim_b, 2, -1])
 
 

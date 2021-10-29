@@ -77,18 +77,20 @@ class AbstractMDXNet(LightningModule):
         return {'loss': score}
 
     def stft(self, x):
-        x = x.reshape([-1, self.chunk_size])
-        x = torch.stft(x, n_fft=self.n_fft, hop_length=self.hop_length, window=self.window, center=True)
+        dim_b = x.shape[0]
+        x = x.reshape([dim_b * 2, -1])
+        x = torch.stft(x, n_fft=self.n_fft, hop_length=self.hop, window=self.window, center=True)
         x = x.permute([0, 3, 1, 2])
-        x = x.reshape([-1, 2, 2, self.n_bins, self.dim_t]).reshape([-1, self.dim_c, self.n_bins, self.dim_t])
+        x = x.reshape([dim_b, 2, 2, self.n_bins, -1]).reshape([dim_b, self.dim_c, self.n_bins, -1])
         return x[:, :, :self.dim_f]
 
-    def istft(self, spec):
-        spec = torch.cat([spec, self.freq_pad.repeat([spec.shape[0], 1, 1, 1])], -2)
-        spec = spec.reshape([-1, 2, 2, self.n_bins, self.dim_t]).reshape([-1, 2, self.n_bins, self.dim_t])
-        spec = spec.permute([0, 2, 3, 1])
-        spec = torch.istft(spec, n_fft=self.n_fft, hop_length=self.hop_length, window=self.window, center=True)
-        return spec.reshape([-1, 2, self.chunk_size])
+    def istft(self, x):
+        dim_b = x.shape[0]
+        x = torch.cat([x, self.freq_pad.repeat([x.shape[0], 1, 1, x.shape[-1]])], -2)
+        x = x.reshape([dim_b, 2, 2, self.n_bins, -1]).reshape([dim_b * 2, 2, self.n_bins, -1])
+        x = x.permute([0, 2, 3, 1])
+        x = torch.istft(x, n_fft=self.n_fft, hop_length=self.hop, window=self.window, center=True)
+        return x.reshape([dim_b, 2, -1])
 
 
 class ConvTDFNet(AbstractMDXNet):

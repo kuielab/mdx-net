@@ -32,7 +32,7 @@ class MakeONNXCallback(Callback):
 
             with torch.no_grad():
                 torch.onnx.export(model,
-                                  torch.zeros(model.input_sample_shape),
+                                  torch.zeros(model.inference_chunk_shape),
                                   '{}/{}.onnx'.format(target_dir, model.target_name),
                                   export_params=True,  # store the trained parameter weights inside the model file
                                   opset_version=13,  # the ONNX version to export the model to

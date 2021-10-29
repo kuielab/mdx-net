@@ -31,7 +31,7 @@ class AbstractMDXNet(LightningModule):
         self.inference_chunk_size = hop_length * (self.dim_t * 2 - 1)
         self.overlap = overlap
         self.window = nn.Parameter(torch.hann_window(window_length=self.n_fft, periodic=True), requires_grad=False)
-        self.freq_pad = nn.Parameter(torch.zeros([1, dim_c, self.n_bins - self.dim_f, self.dim_t]), requires_grad=False)
+        self.freq_pad = nn.Parameter(torch.zeros([1, dim_c, self.n_bins - self.dim_f, 1]), requires_grad=False)
         self.inference_chunk_shape = (self.stft(torch.zeros([1, 2, self.inference_chunk_size]))).shape
 
     def configure_optimizers(self):

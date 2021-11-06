@@ -10,8 +10,11 @@ defaults:
 
 callbacks:
   early_stopping:
-    patience: 50
+    patience: 1000000
 
 datamodule:
   external_datasets:
     - test
+
+trainer:
+  max_epochs: 1000000

@@ -10,7 +10,7 @@ seed: 2021
 
 logger:
   wandb:
-    name: 'mdx_other_val5'
+    name: 'mdx_other_Bval5'
 
 trainer:
   gpus: '0,1'

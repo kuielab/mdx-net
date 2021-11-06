@@ -10,10 +10,11 @@ seed: 2021
 
 logger:
   wandb:
-    name: 'mdx_vocals_val5'
+    name: 'mdx_vocals_Bval5'
 
 trainer:
   gpus: '0,1'
+  #resume_from_checkpoint: "/home/ielab/PycharmProjects/mdx-net/logs/runs/vocals/2021-10-29/14-46-43/checkpoints/last.ckpt"
 
 datamodule:
   batch_size: 8

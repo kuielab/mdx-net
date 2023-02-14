@@ -2,7 +2,7 @@
 
 # specify here default training configuration
 defaults:
-  - trainer: minimal
+  - trainer: default
   - datamodule: musdb18_hq
   - callbacks: default # set this to null if you don't want to use callbacks
   - logger: null # set logger here or use command line (e.g. `python run.py logger=wandb`)
@@ -22,6 +22,7 @@ defaults:
 # so it's useful to have this path as a special variable
 # learn more here: https://hydra.cc/docs/next/tutorials/basic/running_your_app/working_directory
 work_dir: ${hydra:runtime.cwd}
+output_dir: ${hydra:runtime.output_dir}
 
 # path to folder with data
 data_dir: ${oc.env:data_dir}

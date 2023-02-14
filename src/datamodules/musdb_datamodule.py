@@ -65,7 +65,7 @@ class MusdbDataModule(LightningDataModule):
         self.valid_track_names = kwargs['validation_set']
 
         for track in self.valid_track_names:
-            assert self.data_dir.joinpath('train/'+track).exists()
+            assert self.data_dir.joinpath(track).exists()
 
     def setup(self, stage: Optional[str] = None):
         """Load data. Set variables: self.data_train, self.data_val, self.data_test."""

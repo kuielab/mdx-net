@@ -1,0 +1,22 @@
+
+defaults:
+  - musdb18_hq
+
+has_split_structure: False
+
+validation_set:
+  - 014f3712-293b-42af-9f29-0ed1785be792
+  - 25789239-1075-43b9-bfc9-51dff4a29590
+  - 4b9f86f4-23e4-458b-839e-8a63b584bea3
+  - 7efcb55d-c0db-472f-b765-1739ad7536aa
+  - afca84b2-0277-4b1b-8696-5f14543f338c
+  - d624037a-1a76-4dd9-9e60-4ba380748a0b
+  - 0177be35-64de-469b-908b-2d9edb49c053
+  - 260c431b-72d4-4ac6-bae5-ee49ce5c0fe4
+  - 4cbd6c36-87a2-4d50-86e3-52d39b98fad3
+  - 8042b88a-6179-406b-9ec4-b45a4cdd4a71
+  - b207da3d-4baf-485a-98e1-657602479b3a
+  - d7d28204-a8ac-4c2b-bb3c-c941f4a00b85
+  - 02ee37da-eea3-42b4-83bf-ab7f243afa13
+
+aug_params: null

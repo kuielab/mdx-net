@@ -1,6 +1,7 @@
 import os
 from abc import ABCMeta, ABC
 from pathlib import Path
+from typing import Set, List
 
 import soundfile
 from torch.utils.data import Dataset
@@ -9,8 +10,11 @@ import numpy as np
 import random
 from tqdm import tqdm
 
+from src.utils import utils
 from src.utils.utils import load_wav
 
+
+log = utils.get_logger(__name__)
 
 def check_target_name(target_name, source_names):
     try:
@@ -52,43 +56,43 @@ class MusdbTrainDataset(MusdbDataset):
         self.target_name = target_name
         check_target_name(self.target_name, self.source_names)
 
-        if not self.musdb_path.joinpath('metadata').exists():
+        metadata_cache_path = self.musdb_path.joinpath('metadata').joinpath('raw_data.pkl')
+
+        metadata = []
+        if self.musdb_path.joinpath('metadata').exists():
+            if metadata_cache_path.exists():
+                metadata = torch.load(metadata_cache_path)
+        else:
             os.mkdir(self.musdb_path.joinpath('metadata'))
 
-        splits = ['train']
-        splits += external_datasets
+        tracks: Set[str] = set(os.listdir(self.musdb_path)).difference({'metadata', 'train'})
+        train_data: Set[str] = tracks.difference(set(valid_track_names))
+        assert len(set(valid_track_names)) + len(train_data) == len(set(tracks))
 
-        # collect paths for datasets and metadata (track names and duration)
-        datasets, metadata_caches = [], []
-        raw_datasets = []    # un-augmented datasets
-        for split in splits:
-            raw_datasets.append(self.musdb_path.joinpath(split))
-            max_pitch, max_tempo = aug_params
-            for p in range(-max_pitch, max_pitch+1):
-                for t in range(-max_tempo, max_tempo+1, 10):
-                    aug_split = split if p==t==0 else split + f'_p={p}_t={t}'
-                    datasets.append(self.musdb_path.joinpath(aug_split))
-                    metadata_caches.append(self.musdb_path.joinpath('metadata').joinpath(aug_split + '.pkl'))
+        train_data: List[str] = sorted(train_data)
+        if metadata is not None:
+            if [track.name for track, length in metadata] == train_data:
+                log.info('cached metadata loaded.')
+            else:
+                log.warning('cached metadata does not look valid. previous one will removed, and be re-generated.')
+                metadata = None
 
-        # collect all track names and their duration
-        self.metadata = []
-        raw_track_lengths = []   # for calculating epoch size
-        for i, (dataset, metadata_cache) in enumerate(tqdm(zip(datasets, metadata_caches))):
-            try:
-                metadata = torch.load(metadata_cache)
-            except FileNotFoundError:
-                print('creating metadata for', dataset)
-                metadata = []
-                for track_name in sorted(os.listdir(dataset)):
-                    if track_name not in valid_track_names:
-                        track_path = dataset.joinpath(track_name)
-                        track_length = load_wav(track_path.joinpath('vocals.wav')).shape[-1]
-                        metadata.append((track_path, track_length))
-                torch.save(metadata, metadata_cache)
+        if metadata is None:
+            # collect all track names and their duration
+            self.metadata = []
+            raw_track_lengths = []   # for calculating epoch size
 
-            self.metadata += metadata
-            if dataset in raw_datasets:
-                raw_track_lengths += [length for path, length in metadata]
+            metadata = []
+            log.info('analyzing train dataset to generate metadata')
+            for track_name in tqdm(train_data):
+                track_path = self.musdb_path.joinpath(track_name)
+                track_length = load_wav(track_path.joinpath('vocals.wav')).shape[-1]
+                metadata.append((track_path, track_length))
+
+            torch.save(metadata, metadata_cache_path)
+
+        self.metadata = metadata
+        raw_track_lengths = [length for path, length in metadata]
 
         self.epoch_size = sum(raw_track_lengths) // self.chunk_size
 
@@ -126,18 +130,21 @@ class MusdbValidDataset(MusdbDataset):
         self.overlap = overlap
         self.batch_size = batch_size
 
-        self.track_paths = [data_dir.joinpath('train/'+track_name) for track_name in valid_track_names]
+        self.track_paths = [data_dir.joinpath(track_name) for track_name in valid_track_names]
 
     def __getitem__(self, index):
-        mix = load_wav(self.track_paths[index].joinpath('mixture.wav'))
+        # mix = load_wav(self.track_paths[index].joinpath('mixture.wav'))
 
-        if self.target_name == 'all':
-            # Targets for models that separate all four sources (ex. Demucs).
-            # This adds additional 'source' dimension => batch_shape=[batch, source, channel, time]
-            target = [load_wav(self.track_paths[index].joinpath(source_name + '.wav'))
-                      for source_name in self.source_names]
-        else:
-            target = load_wav(self.track_paths[index].joinpath(self.target_name + '.wav'))
+        sources = {source: load_wav(self.track_paths[index].joinpath(source + '.wav')) for source in self.source_names}
+        mix = sum(sources.values())
+        # if self.target_name == 'all':
+        #     # Targets for models that separate all four sources (ex. Demucs).
+        #     # This adds additional 'source' dimension => batch_shape=[batch, source, channel, time]
+        #     target = [load_wav(self.track_paths[index].joinpath(source_name + '.wav'))
+        #               for source_name in self.source_names]
+        # else:
+        #     target = load_wav(self.track_paths[index].joinpath(self.target_name + '.wav'))
+        target = sources[self.target_name]
 
         chunk_output_size = self.chunk_size - 2 * self.overlap
         left_pad = np.zeros([2, self.overlap])

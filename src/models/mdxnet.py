@@ -170,7 +170,7 @@ class ConvTDFNet(AbstractMDXNet):
 
         for i in range(self.n):
             x = self.us[i](x)
-            x *= ds_outputs[-i - 1]
+            x = x * ds_outputs[-i - 1]
             x = self.decoding_blocks[i](x)
 
         x = x.transpose(-1, -2)

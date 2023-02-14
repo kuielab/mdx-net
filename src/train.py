@@ -10,7 +10,7 @@ from pytorch_lightning import (
     Trainer,
     seed_everything,
 )
-from pytorch_lightning.loggers import LightningLoggerBase, WandbLogger
+from pytorch_lightning.loggers import WandbLogger
 
 from src.utils import utils
 
@@ -56,15 +56,17 @@ def train(config: DictConfig) -> Optional[float]:
                 callbacks.append(hydra.utils.instantiate(cb_conf))
 
     # Init Lightning loggers
-    logger: List[LightningLoggerBase] = []
+    logger: List = []
     if "logger" in config:
         for _, lg_conf in config["logger"].items():
             if "_target_" in lg_conf:
                 log.info(f"Instantiating logger <{lg_conf._target_}>")
                 logger.append(hydra.utils.instantiate(lg_conf))
 
-        if any([isinstance(l, WandbLogger) for l in logger]):
+        for wandb_logger in [l for l in logger if isinstance(l, WandbLogger)]:
             utils.wandb_login(key=config.wandb_api_key)
+            wandb_logger.watch(model, 'all')
+            break
 
     # Init Lightning trainer
     log.info(f"Instantiating trainer <{config.trainer._target_}>")

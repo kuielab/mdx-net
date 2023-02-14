@@ -2,20 +2,19 @@ name: mdx-net
 
 channels:
   - pytorch
-  - conda-forge
+  - nvidia
   - anaconda
 
 dependencies:
   - python=3.8
   - pip
   - cudatoolkit
-  - pytorch=1.8.1
-  - torchvision=0.9.1
+  - pytorch=1.13.1
+  - torchvision=0.14.1
+  - torchaudio
   - jupyter
-  - librosa=0.8
-  - ffmpeg
+  - ffmpeg==4.3
   - onnxruntime
-  - nvidia-apex
 
   - pip:
       - -r requirements.txt

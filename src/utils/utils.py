@@ -217,16 +217,14 @@ def save_file(path: str, content: str) -> None:
     with open(path, "w+") as file:
         file.write(content)
 
+
 def wandb_login(key):
     wandb.login(key=key)
 
 
-
-
-
 def sdr(est, ref):
-    ratio = np.sum(ref**2) / np.sum((ref-est)**2)
-    return 10*np.log10(ratio + 1e-10)
+    ratio = np.sum(ref ** 2) / np.sum((ref - est) ** 2)
+    return 10 * np.log10(ratio + 1e-10)
 
 
 def load_wav(path, track_length=None, chunk_size=None):

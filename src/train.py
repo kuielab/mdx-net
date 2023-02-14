@@ -73,7 +73,7 @@ def train(cfg: DictConfig) -> Optional[float]:
 
         for wandb_logger in [l for l in logger if isinstance(l, WandbLogger)]:
             utils.wandb_login(key=cfg.wandb_api_key)
-            wandb_logger.watch(model, 'all')
+            # utils.wandb_watch_all(wandb_logger, model) # TODO buggy
             break
 
     # Init Lightning trainer

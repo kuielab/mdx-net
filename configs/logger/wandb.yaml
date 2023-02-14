@@ -4,7 +4,7 @@ wandb:
   _target_: pytorch_lightning.loggers.wandb.WandbLogger
   project: mdx_${model.target_name}
   name: null
-  save_dir: "."
+  save_dir: ${paths.log_dir}
   offline: False # set True to store all logs only locally
   id: null # pass correct id to resume experiment!
   # entity: ""  # set to name of your wandb team or just remove it

@@ -218,6 +218,7 @@ def save_file(path: str, content: str) -> None:
         file.write(content)
 
 
+@rank_zero_only
 def wandb_login(key):
     wandb.login(key=key)
 
@@ -233,3 +234,8 @@ def load_wav(path, track_length=None, chunk_size=None):
     else:
         s = np.random.randint(track_length - chunk_size)
         return sf.read(path, dtype='float32', start=s, frames=chunk_size)[0].T
+
+
+@rank_zero_only
+def wandb_watch_all(wandb_logger, model):
+    wandb_logger.watch(model, 'all')

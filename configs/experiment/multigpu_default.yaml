@@ -21,3 +21,4 @@ trainer:
   accelerator: cuda
   amp_backend: native
   precision: 16
+  track_grad_norm: 2

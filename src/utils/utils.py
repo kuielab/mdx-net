@@ -1,17 +1,227 @@
-import logging
 import warnings
-import pytorch_lightning as pl
-import rich.syntax
-import rich.tree
-import wandb
+from copy import deepcopy
+from importlib.util import find_spec
+from typing import Callable, List
+
+import hydra
 import numpy as np
-import torch
-import warnings
 import soundfile as sf
-from typing import List, Sequence
+import wandb
 from omegaconf import DictConfig, OmegaConf
-from pytorch_lightning.loggers.wandb import WandbLogger
+from pytorch_lightning import Callback
+from pytorch_lightning.loggers import Logger
 from pytorch_lightning.utilities import rank_zero_only
+
+from src.utils import pylogger, rich_utils
+
+log = pylogger.get_pylogger(__name__)
+
+
+def task_wrapper(task_func: Callable) -> Callable:
+    """Optional decorator that wraps the task function in extra utilities.
+
+    Makes multirun more resistant to failure.
+
+    Utilities:
+    - Calling the `utils.extras()` before the task is started
+    - Calling the `utils.close_loggers()` after the task is finished or failed
+    - Logging the exception if occurs
+    - Logging the output dir
+    """
+
+    def wrap(cfg: DictConfig):
+
+        # execute the task
+        try:
+
+            # apply extra utilities
+            extras(cfg)
+
+            metric_dict, object_dict = task_func(cfg=cfg)
+
+        # things to do if exception occurs
+        except Exception as ex:
+
+            # save exception to `.log` file
+            log.exception("")
+
+            # when using hydra plugins like Optuna, you might want to disable raising exception
+            # to avoid multirun failure
+            raise ex
+
+        # things to always do after either success or exception
+        finally:
+
+            # display output dir path in terminal
+            log.info(f"Output dir: {cfg.paths.output_dir}")
+
+            # close loggers (even if exception occurs so multirun won't fail)
+            close_loggers()
+
+        return metric_dict, object_dict
+
+    return wrap
+
+
+def extras(cfg: DictConfig) -> None:
+    """Applies optional utilities before the task is started.
+
+    Utilities:
+    - Ignoring python warnings
+    - Setting tags from command line
+    - Rich config printing
+    """
+
+    # return if no `extras` config
+    if not cfg.get("extras"):
+        log.warning("Extras config not found! <cfg.extras=null>")
+        return
+
+    # disable python warnings
+    if cfg.extras.get("ignore_warnings"):
+        log.info("Disabling python warnings! <cfg.extras.ignore_warnings=True>")
+        warnings.filterwarnings("ignore")
+
+    # prompt user to input tags from command line if none are provided in the config
+    if cfg.extras.get("enforce_tags"):
+        log.info("Enforcing tags! <cfg.extras.enforce_tags=True>")
+        rich_utils.enforce_tags(cfg, save_to_file=True)
+
+    # pretty print config tree using Rich library
+    if cfg.extras.get("print_config"):
+        log.info("Printing config tree with Rich! <cfg.extras.print_config=True>")
+        rich_utils.print_config_tree(cfg, resolve=True, save_to_file=True)
+
+
+def instantiate_callbacks(callbacks_cfg: DictConfig) -> List[Callback]:
+    """Instantiates callbacks from config."""
+    callbacks: List[Callback] = []
+
+    if not callbacks_cfg:
+        log.warning("No callback configs found! Skipping..")
+        return callbacks
+
+    if not isinstance(callbacks_cfg, DictConfig):
+        raise TypeError("Callbacks config must be a DictConfig!")
+
+    for _, cb_conf in callbacks_cfg.items():
+        if isinstance(cb_conf, DictConfig) and "_target_" in cb_conf:
+            log.info(f"Instantiating callback <{cb_conf._target_}>")
+            callbacks.append(hydra.utils.instantiate(cb_conf))
+
+    return callbacks
+
+
+def instantiate_loggers(logger_cfg: DictConfig) -> List[Logger]:
+    """Instantiates loggers from config."""
+    logger: List[Logger] = []
+
+    if not logger_cfg:
+        log.warning("No logger configs found! Skipping...")
+        return logger
+
+    if not isinstance(logger_cfg, DictConfig):
+        raise TypeError("Logger config must be a DictConfig!")
+
+    for _, lg_conf in logger_cfg.items():
+        if isinstance(lg_conf, DictConfig) and "_target_" in lg_conf:
+            log.info(f"Instantiating logger <{lg_conf._target_}>")
+            logger.append(hydra.utils.instantiate(lg_conf))
+
+    return logger
+
+
+@rank_zero_only
+def log_hyperparameters(object_dict: dict) -> None:
+    """Controls which config parts are saved by lightning loggers.
+
+    Additionally saves:
+    - Number of model parameters
+    """
+
+    hparams = {}
+
+    cfg = object_dict["cfg"]
+    model = object_dict["model"]
+    trainer = object_dict["trainer"]
+
+    if not trainer.logger:
+        log.warning("Logger not found! Skipping hyperparameter logging...")
+        return
+
+    hparams["model"] = cfg["model"]
+
+    # save number of model parameters
+    hparams["model/params/total"] = sum(p.numel() for p in model.parameters())
+    hparams["model/params/trainable"] = sum(
+        p.numel() for p in model.parameters() if p.requires_grad
+    )
+    hparams["model/params/non_trainable"] = sum(
+        p.numel() for p in model.parameters() if not p.requires_grad
+    )
+    #
+    _cfg = deepcopy(cfg)
+    OmegaConf.resolve(_cfg)
+    hparams["datamodule"] = _cfg["datamodule"]
+    hparams["trainer"] = _cfg["trainer"]
+
+    hparams["callbacks"] = _cfg.get("callbacks")
+    # hparams["extras"] = cfg.get("extras")
+
+    hparams["task_name"] = _cfg.get("task_name")
+    hparams["tags"] = _cfg.get("tags")
+    hparams["ckpt_path"] = _cfg.get("ckpt_path")
+    hparams["seed"] = _cfg.get("seed")
+
+    # send hparams to all loggers
+    for logger in trainer.loggers:
+        logger.log_hyperparams(hparams)
+
+
+def get_metric_value(metric_dict: dict, metric_name: str) -> float:
+    """Safely retrieves value of the metric logged in LightningModule."""
+
+    if not metric_name:
+        log.info("Metric name is None! Skipping metric value retrieval...")
+        return None
+
+    if metric_name not in metric_dict:
+        raise Exception(
+            f"Metric value not found! <metric_name={metric_name}>\n"
+            "Make sure metric name logged in LightningModule is correct!\n"
+            "Make sure `optimized_metric` name in `hparams_search` config is correct!"
+        )
+
+    metric_value = metric_dict[metric_name].item()
+    log.info(f"Retrieved metric value! <{metric_name}={metric_value}>")
+
+    return metric_value
+
+
+def close_loggers() -> None:
+    """Makes sure all loggers closed properly (prevents logging failure during multirun)."""
+
+    log.info("Closing loggers...")
+
+    if find_spec("wandb"):  # if wandb is installed
+        import wandb
+
+        if wandb.run:
+            log.info("Closing wandb!")
+            wandb.finish()
+
+
+@rank_zero_only
+def save_file(path: str, content: str) -> None:
+    """Save file in rank zero mode (only on one process in multi-GPU setup)."""
+    with open(path, "w+") as file:
+        file.write(content)
+
+def wandb_login(key):
+    wandb.login(key=key)
+
+
+
 
 
 def sdr(est, ref):
@@ -25,173 +235,3 @@ def load_wav(path, track_length=None, chunk_size=None):
     else:
         s = np.random.randint(track_length - chunk_size)
         return sf.read(path, dtype='float32', start=s, frames=chunk_size)[0].T
-
-
-def get_logger(name=__name__, level=logging.INFO) -> logging.Logger:
-    """Initializes multi-GPU-friendly python logger."""
-
-    logger = logging.getLogger(name)
-    logger.setLevel(level)
-
-    # this ensures all logging levels get marked with the rank zero decorator
-    # otherwise logs would get multiplied for each GPU process in multi-GPU setup
-    for level in ("debug", "info", "warning", "error", "exception", "fatal", "critical"):
-        setattr(logger, level, rank_zero_only(getattr(logger, level)))
-
-    return logger
-
-
-def extras(config: DictConfig) -> None:
-    """A couple of optional utilities, controlled by main config file:
-    - disabling warnings
-    - easier access to debug mode
-    - forcing debug friendly configuration
-    - forcing multi-gpu friendly configuration
-
-    Modifies DictConfig in place.
-
-    Args:
-        config (DictConfig): Configuration composed by Hydra.
-    """
-
-    log = get_logger()
-
-    # enable adding new keys to config
-    OmegaConf.set_struct(config, False)
-
-    # disable python warnings if <config.ignore_warnings=True>
-    if config.get("ignore_warnings"):
-        log.info("Disabling python warnings! <config.ignore_warnings=True>")
-        warnings.filterwarnings("ignore")
-
-    # set <config.trainer.fast_dev_run=True> if <config.debug=True>
-    if config.get("debug"):
-        log.info("Running in debug mode! <config.debug=True>")
-        config.trainer.fast_dev_run = True
-
-    # force debugger friendly configuration if <config.trainer.fast_dev_run=True>
-    if config.trainer.get("fast_dev_run"):
-        log.info("Forcing debugger friendly configuration! <config.trainer.fast_dev_run=True>")
-        # Debuggers don't like GPUs or multiprocessing
-        if config.trainer.get("gpus"):
-            config.trainer.num_valid_process = 0
-        if config.datamodule.get("pin_memory"):
-            config.datamodule.pin_memory = False
-        if config.datamodule.get("num_workers"):
-            config.datamodule.num_workers = 0
-
-    # force multi-gpu friendly configuration if <config.trainer.accelerator=ddp>
-    # accelerator = config.trainer.get("accelerator")
-    # if accelerator in ["ddp", "ddp_spawn", "dp", "ddp2"]:
-    #     log.info(f"Forcing ddp friendly configuration! <config.trainer.accelerator={accelerator}>")
-    #     if config.datamodule.get("num_workers"):
-    #         config.datamodule.num_workers = 0
-    #     if config.datamodule.get("pin_memory"):
-    #         config.datamodule.pin_memory = False
-
-    # disable adding new keys to config
-    OmegaConf.set_struct(config, True)
-
-
-@rank_zero_only
-def print_config(
-        config: DictConfig,
-        fields: Sequence[str] = (
-                "trainer",
-                "model",
-                "datamodule",
-                "callbacks",
-                "logger",
-                "seed",
-        ),
-        resolve: bool = True,
-) -> None:
-    """Prints content of DictConfig using Rich library and its tree structure.
-
-    Args:
-        config (DictConfig): Configuration composed by Hydra.
-        fields (Sequence[str], optional): Determines which main fields from config will
-        be printed and in what order.
-        resolve (bool, optional): Whether to resolve reference fields of DictConfig.
-    """
-
-    style = "dim"
-    tree = rich.tree.Tree(":gear: CONFIG", style=style, guide_style=style)
-
-    for field in fields:
-        branch = tree.add(field, style=style, guide_style=style)
-
-        config_section = config.get(field)
-        branch_content = str(config_section)
-        if isinstance(config_section, DictConfig):
-            branch_content = OmegaConf.to_yaml(config_section, resolve=resolve)
-
-        branch.add(rich.syntax.Syntax(branch_content, "yaml"))
-
-    rich.print(tree)
-
-
-def empty(*args, **kwargs):
-    pass
-
-
-@rank_zero_only
-def log_hyperparameters(
-        config: DictConfig,
-        model: pl.LightningModule,
-        datamodule: pl.LightningDataModule,
-        trainer: pl.Trainer,
-        callbacks: List[pl.Callback],
-        logger: List,
-) -> None:
-    """This method controls which parameters from Hydra config are saved by Lightning loggers.
-
-    Additionaly saves:
-        - number of trainable model parameters
-    """
-
-    hparams = {}
-
-    # choose which parts of hydra config will be saved to loggers
-    hparams["trainer"] = config["trainer"]
-    hparams["model"] = config["model"]
-    hparams["datamodule"] = config["datamodule"]
-    if "callbacks" in config:
-        hparams["callbacks"] = config["callbacks"]
-
-    # save number of model parameters
-    hparams["model/params_total"] = sum(p.numel() for p in model.parameters())
-    hparams["model/params_trainable"] = sum(
-        p.numel() for p in model.parameters() if p.requires_grad
-    )
-    hparams["model/params_not_trainable"] = sum(
-        p.numel() for p in model.parameters() if not p.requires_grad
-    )
-
-    # send hparams to all loggers
-    trainer.logger.log_hyperparams(hparams)
-
-    # disable logging any more hyperparameters for all loggers
-    # this is just a trick to prevent trainer from logging hparams of model,
-    # since we already did that above
-    trainer.logger.log_hyperparams = empty
-
-
-def finish(
-        config: DictConfig,
-        model: pl.LightningModule,
-        datamodule: pl.LightningDataModule,
-        trainer: pl.Trainer,
-        callbacks: List[pl.Callback],
-        logger: List
-) -> None:
-    """Makes sure everything closed properly."""
-
-    # without this sweeps with wandb logger might crash!
-    for lg in logger:
-        if isinstance(lg, WandbLogger):
-            wandb.finish()
-
-
-def wandb_login(key):
-    wandb.login(key=key)

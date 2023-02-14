@@ -6,6 +6,8 @@ from omegaconf import DictConfig, OmegaConf
 # recursively searches for `.env` in all folders starting from work dir
 from pytorch_lightning.utilities import rank_zero_info
 
+from src.utils import print_config_tree
+
 dotenv.load_dotenv(override=True)
 
 
@@ -29,7 +31,7 @@ def main(config: DictConfig):
 
     # Pretty print config using Rich library
     if config.get("print_config"):
-        utils.print_config(config, resolve=True)
+        print_config_tree(config, resolve=True)
 
     # Train model
     return train(config)

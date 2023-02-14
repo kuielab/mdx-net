@@ -14,7 +14,9 @@ from src.evaluation.separate import separate_with_onnx, separate_with_ckpt
 from src.utils import utils
 from src.utils.utils import load_wav, sdr
 
-log = utils.get_logger(__name__)
+from src.utils import pylogger
+
+log = pylogger.get_pylogger(__name__)
 
 
 def evaluation(config: DictConfig):

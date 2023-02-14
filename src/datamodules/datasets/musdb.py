@@ -14,7 +14,10 @@ from src.utils import utils
 from src.utils.utils import load_wav
 
 
-log = utils.get_logger(__name__)
+from src.utils import pylogger
+
+log = pylogger.get_pylogger(__name__)
+
 
 def check_target_name(target_name, source_names):
     try:

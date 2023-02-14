@@ -2,16 +2,17 @@
 
 # specify here default training configuration
 defaults:
-  - trainer: default
   - datamodule: musdb18_hq
+  - model: null
   - callbacks: default # set this to null if you don't want to use callbacks
   - logger: null # set logger here or use command line (e.g. `python run.py logger=wandb`)
-  - model: null
-  - experiment: null
+  - trainer: default
   - hparams_search: null
   - paths: default.yaml
 
   - hydra: default
+
+  - experiment: null
 
   # enable color logging
   - override hydra/hydra_logging: colorlog

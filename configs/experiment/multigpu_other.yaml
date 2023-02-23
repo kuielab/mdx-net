@@ -5,6 +5,7 @@
 
 defaults:
   - multigpu_default
+  - override /model: ConvTDFNet_other.yaml
 
 seed: 2021
 

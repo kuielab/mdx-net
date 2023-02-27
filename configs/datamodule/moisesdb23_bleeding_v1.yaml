@@ -21,4 +21,4 @@ validation_set:
 
 aug_params: null
 
-mode: labelnoise
+mode: bleeding

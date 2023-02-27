@@ -37,11 +37,13 @@ class MusdbDataModule(LightningDataModule):
             num_workers: int,
             pin_memory: bool,
             external_datasets,
+            mode: str,
             **kwargs,
     ):
         super().__init__()
 
         self.data_dir = Path(data_dir)
+        assert mode in str(self.data_dir), 'There is a mismatch between datamodule and data_path. check your .env.'
         self.target_name = target_name
         self.aug_params = aug_params
         self.external_datasets = external_datasets if external_datasets is not None else []
